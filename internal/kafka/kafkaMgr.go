@@ -56,6 +56,7 @@ func (k *KafkaMgr) decodeMessage(message kafka.Message) (string, error) {
 		return "", err
 	}
 	// TODO Fix this json shit
+	//objectPath := "test-bucket/42154d0805933548da9b7a9fbbce40be9e155091e6f96ed4ce324c21b3430b20"
 	objectPath := "test-bucket/Wave Ticket.pdf"
 
 	return objectPath, nil

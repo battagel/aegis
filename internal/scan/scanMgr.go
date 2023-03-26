@@ -17,7 +17,7 @@ type ScanMgr struct {
 
 func CreateScanMgr(scanChan chan string) (*ScanMgr, error) {
 	fmt.Println("Creating Scan Manager")
-	removeAfterScan := true
+	removeAfterScan := false
 
 	minioMgr, err := minioMgr.CreateMinioMgr()
 	if err != nil {
@@ -49,9 +49,10 @@ func (s *ScanMgr) StartScanMgr() error {
 			fmt.Println("Error initiating scan: ", err)
 			return err
 		}
-		// TODO Initiate scan of file
-		fmt.Println("Scan result: ", result)
-
+		// TODO: Send result to minio and add tag to file
+		if result {
+			fmt.Println("Infected file: ", objectPath)
+		}
 		if s.removeAfterScan {
 			err := removeFileFromCache(cachePath)
 			if err != nil {
@@ -69,16 +70,23 @@ func (s *ScanMgr) StopScanMgr() error {
 }
 
 func (s *ScanMgr) initiateScan(filePath string) (bool, error) {
-	// TODO Connect to clamd and initiate scan
+	// Returns false if file is clean, true if infected
+	// If there are any errors then return true (infected)
 	cmd := exec.Command("clamdscan", filePath, "--stream", "-m")
-	output, err := cmd.Output()
+	err := cmd.Run()
 	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			// Exit code 1 means infected
+			if exitError.ExitCode() == 1 {
+				fmt.Println("File is infected")
+				return true, nil
+			}
+		}
 		fmt.Println("Error initiating scan: ", err)
 		return true, err
 	}
-	fmt.Println("Scan output: ", string(output))
-
-	return true, nil
+	// Due to exit codes, the file must be ok
+	return false, nil
 }
 
 func saveByteStreamToFile(data []byte, filePath string) error {

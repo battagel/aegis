@@ -30,13 +30,11 @@ func CreateMinioMgr() (*MinioMgr, error) {
 }
 
 func (m *MinioMgr) GetObject(bucketName string, objectName string) ([]byte, error) {
-	fmt.Println("Getting Minio Object")
 	object, err := m.minioClient.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		fmt.Println("Error getting object: ", err)
 		return nil, err
 	}
-	fmt.Println(object)
 	defer object.Close()
 
 	data, err := ioutil.ReadAll(object)
