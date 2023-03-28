@@ -2,7 +2,9 @@ package main
 
 import (
 	"antivirus/internal/kafka"
-	"antivirus/internal/scan"
+	"antivirus/internal/messages"
+	"antivirus/internal/minio"
+	"antivirus/internal/scanmanager"
 	"fmt"
 	"os"
 	"time"
@@ -10,19 +12,23 @@ import (
 
 func run() int {
 	topic := "test-topic"
-	scanChan := make(chan string)
-	kafkaMgr, err := kafkaMgr.CreateKafkaMgr(topic, scanChan)
+	scanChan := make(chan messages.ScanRequest)
+	minioManager, err := minio.CreateMinioManager()
+	if err != nil {
+		fmt.Println("Error creating minio manager")
+	}
+	kafkaManager, err := kafka.CreateKafkaManager(topic, scanChan)
 	if err != nil {
 		fmt.Println("Error creating kafka manager")
 	}
 
-	scanMgr, err := scanMgr.CreateScanMgr(scanChan)
+	scanManager, err := scanmanager.CreateScanManager(scanChan, minioManager)
 	if err != nil {
 		fmt.Println("Error creating antivirus manager")
 	}
 
-	go kafkaMgr.StartKafkaMgr()
-	go scanMgr.StartScanMgr()
+	go kafkaManager.StartKafkaManager()
+	go scanManager.StartScanManager()
 	// go metricMgr.StartMetrics()
 
 	// audit := StartAudit()

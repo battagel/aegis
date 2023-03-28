@@ -1,16 +1,20 @@
 # Antivirus
 
-Antivirus service for MinIO
+Antivirus manager service for MinIO.
 
 ## Contents
 
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Make Commands](#make-commands)
+- [Usage](#usage)
 
 ## Requirements
 
-The only requirement for this program is [Golang 1.16+](https://go.dev/dl/)
+- GoLang
+- MinIO server
+- Kafka server
+- ClamAV daemon
 
 ## Installation
 
@@ -34,3 +38,7 @@ build    Create the binary
 run      Run the binary
 vendor   Download the vendored dependencies
 ```
+
+## Usage
+
+This service manages the scanning of new files uploaded to MinIO. It is connected to Kafka to read PUT events, download the file into a cache and then scan. Depending on the output, the files metadata will be updated with the result of the scan.
