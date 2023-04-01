@@ -1,31 +1,29 @@
 package dispatcher
 
 import (
-	"antivirus/internal/minioMgr"
+	"antivirus/internal/objectstore"
+	"antivirus/internal/scanner"
 	"fmt"
 	"testing"
 )
 
 type CommonTestItems struct {
-	ScanMgr *ScanMgr
+	scanners []Scanner
 }
 
 func ProvideCommonTestItems(t *testing.T) *CommonTestItems {
 	t.Helper()
 
-	scanChan := make(chan string)
-	minioMgr, err := minioMgr.CreateMinioMgr()
+	objectStore, err := objectstore.CreateMinioManager()
 	if err != nil {
 		fmt.Println("Error creating minio manager")
 	}
-	scanMgr, err := scanMgr.CreateScanMgr(scanChan, minioMgr)
+	clamAV, err := scanner.CreateClamAV(objectStore)
 	if err != nil {
-		fmt.Println("Error creating antivirus manager")
+		fmt.Println("Error creating clamAV")
 	}
 
-	go scanMgr.StartScanMgr()
-
-	return &CommonTestItems{ScanMgr: scanMgr}
+	return &CommonTestItems{scanners: []Scanner{clamAV}}
 }
 
 func TestScanMgrWorking(t *testing.T) {

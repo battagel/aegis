@@ -12,6 +12,7 @@ Antivirus manager service for MinIO.
 ## Requirements
 
 - GoLang
+- Mockery (testing)
 - MinIO server
 - Kafka server
 - ClamAV daemon

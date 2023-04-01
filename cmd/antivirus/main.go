@@ -3,6 +3,7 @@ package main
 import (
 	"antivirus/internal/dispatcher"
 	"antivirus/internal/kafka"
+	"antivirus/internal/metrics"
 	"antivirus/internal/object"
 	"antivirus/internal/objectstore"
 	"antivirus/internal/scanner"
@@ -12,14 +13,15 @@ import (
 )
 
 func run() int {
-	topic := "test-topic"
 	scanChan := make(chan *object.Object)
+	metricChan := make(chan string)
+	defer close(scanChan)
 	// Removes hidden control flow
 	objectStore, err := objectstore.CreateObjectStore()
 	if err != nil {
 		fmt.Println("Error creating minio manager")
 	}
-	kafkaManager, err := kafka.CreateKafkaManager(topic, scanChan)
+	kafkaManager, err := kafka.CreateKafkaManager(scanChan)
 	if err != nil {
 		fmt.Println("Error creating kafka manager")
 	}
@@ -28,10 +30,15 @@ func run() int {
 	if err != nil {
 		fmt.Println("Error creating antivirus manager")
 	}
+	metricManager, err := metrics.CreateMetricManager(metricChan)
+	if err != nil {
+		fmt.Println("Error creating metric server")
+	}
 
 	// sync.WaitGroup() as part of termination
 	go kafkaManager.StartKafkaManager()
 	go dispatcher.StartDispatcher()
+	go metricManager.StartMetricManager()
 
 	sigchan := make(chan os.Signal)
 	signal.Notify(sigchan, os.Interrupt)

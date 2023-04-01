@@ -1,0 +1,6 @@
+package scanner
+
+import (
+)
+
+func 

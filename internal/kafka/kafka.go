@@ -1,10 +1,12 @@
 package kafka
 
 import (
+	"antivirus/internal/config"
 	"antivirus/internal/object"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -14,13 +16,18 @@ type KafkaMgr struct {
 	scanChan chan *object.Object
 }
 
-func CreateKafkaManager(topic string, scanChan chan *object.Object) (*KafkaMgr, error) {
+func CreateKafkaManager(scanChan chan *object.Object) (*KafkaMgr, error) {
 	fmt.Println("Creating Kafka Manager")
+	config, err := config.GetConfig()
+	if err != nil {
+		fmt.Println("Error getting config in kafka: ", err)
+		return nil, err
+	}
 	conf := kafka.ReaderConfig{
-		Brokers:  []string{"localhost:9092"},
-		Topic:    topic,
-		GroupID:  "g1",
-		MaxBytes: 10,
+		Brokers:  config.Services.Kafka.Brokers,
+		Topic:    config.Services.Kafka.Topic,
+		GroupID:  config.Services.Kafka.GroupID,
+		MaxBytes: config.Services.Kafka.MaxBytes,
 	}
 
 	reader := kafka.NewReader(conf)
@@ -35,14 +42,16 @@ func (k *KafkaMgr) StartKafkaManager() (*KafkaMgr, error) {
 			fmt.Println("Error reading message from Kafka: ", err)
 			return nil, err
 		}
-		fmt.Println("Message: ", string(message.Value))
-		bucketName, objectKey, err := k.decodeMessage(message)
+		newPut, bucketName, objectKey, err := k.decodeMessage(message)
 		if err != nil {
 			fmt.Println("Error decoding message: ", err)
 			return nil, err
 		}
-		request := object.CreateObject(bucketName, objectKey)
-		k.scanChan <- request
+		if newPut {
+			fmt.Println("Message: ", string(message.Value))
+			request := object.CreateObject(bucketName, objectKey)
+			k.scanChan <- request
+		}
 	}
 }
 
@@ -51,7 +60,8 @@ func (k *KafkaMgr) StopKafkaManager() {
 }
 
 type MessageJson struct {
-	Records []struct {
+	EventName string `json:"EventName"`
+	Records   []struct {
 		S3 struct {
 			Bucket struct {
 				Name string `json:"name"`
@@ -63,18 +73,27 @@ type MessageJson struct {
 	} `json:"Records"`
 }
 
-func (k *KafkaMgr) decodeMessage(message kafka.Message) (string, string, error) {
+func (k *KafkaMgr) decodeMessage(message kafka.Message) (bool, string, string, error) {
 	data := MessageJson{}
 	err := json.Unmarshal([]byte(message.Value), &data)
 	if err != nil {
 		fmt.Println("Error unmarshalling json: ", err)
-		return "", "", err
+		return false, "", "", err
 	}
-	bucketName := data.Records[0].S3.Bucket.Name
-	objectKey := data.Records[0].S3.Object.Key
-	// TODO Fix this json shit
-	//objectPath := "test-bucket/42154d0805933548da9b7a9fbbce40be9e155091e6f96ed4ce324c21b3430b20"
-	// objectPath := "test-bucket/Wave Ticket.pdf"
-
-	return bucketName, objectKey, nil
+	// Potential Security Issue. Attackers can edit tags without scan
+	if data.EventName == "s3:ObjectCreated:PutTagging" {
+		return false, "", "", nil
+	}
+	// Using url.QueryUnescape to handle spaces in object names as they show as "+" which breaks the file path
+	bucketName, err := url.QueryUnescape(data.Records[0].S3.Bucket.Name)
+	if err != nil {
+		fmt.Println("Error unescaping bucket name: ", err)
+		return false, "", "", err
+	}
+	objectKey, err := url.QueryUnescape(data.Records[0].S3.Object.Key)
+	if err != nil {
+		fmt.Println("Error unescaping object key: ", err)
+		return false, "", "", err
+	}
+	return true, bucketName, objectKey, nil
 }

@@ -1,25 +1,33 @@
 package scanner
 
 import (
+	"antivirus/internal/config"
 	"antivirus/internal/object"
 	"fmt"
 	"os/exec"
-	// "github.com/minio/minio-go/v7/pkg/tags"
+	"time"
 )
 
 type ObjectStore interface {
 	GetObject(bucketName string, objectName string) ([]byte, error)
-	// AddObjectTagging(bucketName string, objectName string, newTags *tags.Tags) error
+	AddObjectTagging(bucketName string, objectName string, newTags map[string]string) error
 }
 
 type Scanner struct {
 	objectStore     ObjectStore
 	removeAfterScan bool
+	datetimeFormat  string
 }
 
 func CreateClamAV(objectStore ObjectStore) (*Scanner, error) {
-	removeAfterScan := true
-	return &Scanner{objectStore: objectStore, removeAfterScan: removeAfterScan}, nil
+	config, err := config.GetConfig()
+	if err != nil {
+		fmt.Println("Error getting config in clamav: ", err)
+		return nil, err
+	}
+	removeAfterScan := config.Services.ClamAV.RemoveAfterScan
+	datetimeFormat := config.Services.ClamAV.DatetimeFormat
+	return &Scanner{objectStore: objectStore, removeAfterScan: removeAfterScan, datetimeFormat: datetimeFormat}, nil
 }
 
 func (s *Scanner) ScanObject(object *object.Object) error {
@@ -41,23 +49,23 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 		fmt.Println("Error initiating scan: ", err)
 		return err
 	}
+	dt := time.Now().Format(s.datetimeFormat)
 	if result {
-		// TODO: Send result to minio and add tag to file
 		fmt.Println("Infected file: ", object.ObjectKey)
-		// antivirusTags := AntivirusTags{"antivirus": "infected"}
-		// err := s.minioMgr.AddObjectTagging(bucketName, objectKey, antivirusTags)
-		// if err != nil {
-		// fmt.Println("Error adding tag to object: ", err)
-		// return err
-		// }
+		newTags := map[string]string{"antivirus": "infected", "antivirus-last-scanned": dt}
+		err := s.objectStore.AddObjectTagging(object.BucketName, object.ObjectKey, newTags)
+		if err != nil {
+			fmt.Println("Error adding tag to object: ", err)
+			return err
+		}
 	} else {
 		fmt.Println("Clean file: ", object.ObjectKey)
-		// antivirusTags := AntivirusTags{"antivirus": "scanned"}
-		// err := s.minioMgr.AddObjectTagging(bucketName, objectKey, antivirusTags)
-		// if err != nil {
-		// 	fmt.Println("Error adding tag to object: ", err)
-		// 	return err
-		// }
+		newTags := map[string]string{"antivirus": "scanned", "antivirus-last-scanned": dt}
+		err := s.objectStore.AddObjectTagging(object.BucketName, object.ObjectKey, newTags)
+		if err != nil {
+			fmt.Println("Error adding tag to object: ", err)
+			return err
+		}
 	}
 	if s.removeAfterScan {
 		err := object.RemoveFileFromCache()
