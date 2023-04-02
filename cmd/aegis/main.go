@@ -1,6 +1,7 @@
 package main
 
 import (
+	"aegis/internal/cli"
 	"aegis/internal/dispatcher"
 	"aegis/internal/kafka"
 	"aegis/internal/metrics"
@@ -8,15 +9,19 @@ import (
 	"aegis/internal/objectstore"
 	"aegis/internal/scanner"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 )
 
 func run() int {
+	cli.PrintSplash()
+	logger := log.New(os.Stdout, "AEGIS: ", log.LstdFlags)
 	scanChan := make(chan *object.Object)
 	metricChan := make(chan string)
 	defer close(scanChan)
 	// Removes hidden control flow
+	logger.Println("Starting AEGIS")
 	objectStore, err := objectstore.CreateObjectStore()
 	if err != nil {
 		fmt.Println("Error creating minio manager")
