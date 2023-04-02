@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	"antivirus/internal/config"
+	"aegis/internal/config"
 	"fmt"
 	"net/http"
 	"time"

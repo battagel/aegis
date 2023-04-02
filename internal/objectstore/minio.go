@@ -1,7 +1,7 @@
 package objectstore
 
 import (
-	"antivirus/internal/config"
+	"aegis/internal/config"
 	"context"
 	"fmt"
 	"io"

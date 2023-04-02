@@ -1,7 +1,7 @@
 package dispatcher
 
 import (
-	"antivirus/internal/object"
+	"aegis/internal/object"
 	"fmt"
 )
 

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"antivirus/internal/dispatcher"
-	"antivirus/internal/kafka"
-	"antivirus/internal/metrics"
-	"antivirus/internal/object"
-	"antivirus/internal/objectstore"
-	"antivirus/internal/scanner"
+	"aegis/internal/dispatcher"
+	"aegis/internal/kafka"
+	"aegis/internal/metrics"
+	"aegis/internal/object"
+	"aegis/internal/objectstore"
+	"aegis/internal/scanner"
 	"fmt"
 	"os"
 	"os/signal"

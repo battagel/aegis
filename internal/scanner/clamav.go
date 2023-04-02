@@ -1,8 +1,8 @@
 package scanner
 
 import (
-	"antivirus/internal/config"
-	"antivirus/internal/object"
+	"aegis/internal/config"
+	"aegis/internal/object"
 	"fmt"
 	"os/exec"
 	"time"

@@ -1,4 +1,4 @@
-module antivirus
+module aegis
 
 go 1.19
 

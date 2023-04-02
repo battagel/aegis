@@ -49,7 +49,7 @@ func GetConfig() (*Config, error) {
 	vp = viper.New()
 	var config Config
 
-	vp.SetConfigName("antivirus")
+	vp.SetConfigName("aegis")
 	vp.SetConfigType("yaml")
 	vp.AddConfigPath(".")
 

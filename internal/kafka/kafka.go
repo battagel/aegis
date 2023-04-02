@@ -1,8 +1,8 @@
 package kafka
 
 import (
-	"antivirus/internal/config"
-	"antivirus/internal/object"
+	"aegis/internal/config"
+	"aegis/internal/object"
 	"context"
 	"encoding/json"
 	"fmt"

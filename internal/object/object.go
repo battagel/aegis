@@ -1,7 +1,7 @@
 package object
 
 import (
-	"antivirus/internal/config"
+	"aegis/internal/config"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
