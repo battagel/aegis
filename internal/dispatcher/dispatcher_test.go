@@ -1,40 +1,71 @@
 package dispatcher
 
 import (
-	"antivirus/internal/objectstore"
-	"antivirus/internal/scanner"
-	"fmt"
+	"aegis/internal/object"
 	"testing"
+	"time"
 )
 
-type CommonTestItems struct {
-	scanners []Scanner
+type testScanner struct{}
+
+func (s *testScanner) ScanObject(o *object.Object) error {
+	return nil
 }
 
-func ProvideCommonTestItems(t *testing.T) *CommonTestItems {
-	t.Helper()
+func TestCreateDispatcher(t *testing.T) {
+	scanner := &testScanner{}
+	scanChan := make(chan *object.Object)
+	dispatcher, err := CreateDispatcher([]Scanner{scanner}, scanChan)
 
-	objectStore, err := objectstore.CreateMinioManager()
 	if err != nil {
-		fmt.Println("Error creating minio manager")
+		t.Errorf("expected nil error, but got %v", err)
 	}
-	clamAV, err := scanner.CreateClamAV(objectStore)
+
+	if dispatcher == nil {
+		t.Error("expected dispatcher to be initialized, but got nil")
+	}
+}
+
+func TestStartDispatcher(t *testing.T) {
+	scanner := &testScanner{}
+	scanChan := make(chan *object.Object)
+
+	dispatcher, err := CreateDispatcher([]Scanner{scanner}, scanChan)
 	if err != nil {
-		fmt.Println("Error creating clamAV")
+		t.Errorf("unexpected error while creating dispatcher: %v", err)
 	}
 
-	return &CommonTestItems{scanners: []Scanner{clamAV}}
+	go dispatcher.StartDispatcher()
+
+	objectToScan := &object.Object{}
+	scanChan <- objectToScan
+
+	// Sleep for some time to allow scanner to scan the object
+	// and to prevent the test from exiting before the scanner completes
+	// its task
+	time.Sleep(time.Millisecond * 10)
+
+	// Ensure that the ScanObject method of the scanner is called
+	if objectToScan.ScannedBy != scanner {
+		t.Error("expected object to be scanned by the scanner, but it wasn't")
+	}
+
+	// Stop the dispatcher loop
+	dispatcher.StopDispatcher()
 }
 
-func TestScanMgrWorking(t *testing.T) {
-	fmt.Println("TestScanMgrWorking")
-	// Test the scan result of a non-existent file
-	//
-	// Put a dummy request into kafka queue
+func TestStopDispatcher(t *testing.T) {
+	scanner := &testScanner{}
+	scanChan := make(chan *object.Object)
+	dispatcher, err := CreateDispatcher([]Scanner{scanner}, scanChan)
 
-	// Test the scan result of the dummy request
-}
+	if err != nil {
+		t.Errorf("unexpected error while creating dispatcher: %v", err)
+	}
 
-func TestScanMgrFileNotFound(t *testing.T) {
-	// Test the scan result of a non-existent file
+	err = dispatcher.StopDispatcher()
+
+	if err != nil {
+		t.Errorf("expected nil error, but got %v", err)
+	}
 }

@@ -1,6 +1,6 @@
 GO := go
 
-NAME := antivirus
+NAME := aegis
 CMD_DIR := $(CURDIR)/cmd
 BIN_DIR := $(CURDIR)/bin
 MAIN_LOCATION := $(CMD_DIR)/$(NAME)/main.go
@@ -25,3 +25,11 @@ run:
 vendor:
 	@$(GO) mod tidy
 	@$(GO) mod vendor
+
+.PHONY: test
+test:
+	@$(GO) test -v ./... --cover
+
+.PHONY: mock
+mock:
+	mockery --dir ./internal -r --all --config .mockery.yaml

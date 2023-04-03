@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 type Object struct {
@@ -22,19 +23,28 @@ func CreateObject(bucketName string, objectKey string) *Object {
 	if err != nil {
 		fmt.Println("Failed to get config in object: ", err)
 	}
-	cachePath := config.CachePath + bucketName + objectKey
+	cachePath := config.CachePath + bucketName + "/" + objectKey
 	cachePerms := fs.FileMode(config.CachePerms)
 	return &Object{ObjectKey: objectKey, BucketName: bucketName, CachePath: cachePath, cachePerms: cachePerms}
 }
 
-// Helper functions to do with objects e.g. save to file
 func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
-	// TODO Check perms here
+	// Check if the parent directory of the file exists, and create it if it doesn't exist
+	destDir := filepath.Dir(o.CachePath)
+	if _, err := os.Stat(destDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(destDir, o.cachePerms); err != nil {
+			fmt.Println("Failed to create parent directory: ", err)
+			return err
+		}
+	}
+
+	// Write the byte stream to the file
 	err := ioutil.WriteFile(o.CachePath, objectStream, o.cachePerms)
 	if err != nil {
 		fmt.Println("Failed to save byte stream to file: ", err)
 		return err
 	}
+
 	return nil
 }
 
