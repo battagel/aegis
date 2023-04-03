@@ -31,46 +31,46 @@ func run() int {
 			"error", err,
 		)
 	}
-	objectStoreCollector, err := objectstore.CreateObjectStoreCollector()
+	objectStoreCollector, err := objectstore.CreateObjectStoreCollector(sugar)
 	if err != nil {
 		sugar.Errorw("Error creating object store collector",
 			"error", err,
 		)
 	}
-	objectStore, err := objectstore.CreateObjectStore(objectStoreCollector)
+	objectStore, err := objectstore.CreateObjectStore(sugar, objectStoreCollector)
 	if err != nil {
 		sugar.Errorw("Error creating object store",
 			"error", err,
 		)
 	}
 
-	kafkaCollector, err := kafka.CreateKafkaCollector()
+	kafkaCollector, err := kafka.CreateKafkaCollector(sugar)
 	if err != nil {
 		sugar.Errorw("Error creating kafka collector",
 			"error", err,
 		)
 	}
-	kafkaManager, err := kafka.CreateKafkaManager(scanChan, kafkaCollector)
+	kafkaManager, err := kafka.CreateKafkaManager(sugar, scanChan, kafkaCollector)
 	if err != nil {
 		sugar.Errorw("Error creating kafka manager",
 			"error", err,
 		)
 	}
 
-	scanCollector, err := scanner.CreateScanCollector()
+	scanCollector, err := scanner.CreateScanCollector(sugar)
 	if err != nil {
 		sugar.Errorw("Error creating scan collector",
 			"error", err,
 		)
 	}
-	clamAV, err := scanner.CreateClamAV(objectStore, scanCollector)
+	clamAV, err := scanner.CreateClamAV(sugar, objectStore, scanCollector)
 	if err != nil {
 		sugar.Errorw("Error creating clamAV scanner",
 			"error", err,
 		)
 	}
 
-	dispatcher, err := dispatcher.CreateDispatcher([]dispatcher.Scanner{clamAV}, scanChan)
+	dispatcher, err := dispatcher.CreateDispatcher(sugar, []dispatcher.Scanner{clamAV}, scanChan)
 	if err != nil {
 		sugar.Errorw("Error creating antivirus manager",
 			"error", err,

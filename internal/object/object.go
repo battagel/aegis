@@ -2,14 +2,16 @@ package object
 
 import (
 	"aegis/internal/config"
-	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"go.uber.org/zap"
 )
 
 type Object struct {
+	sugar      *zap.SugaredLogger
 	ObjectKey  string
 	BucketName string
 	CachePath  string
@@ -17,15 +19,27 @@ type Object struct {
 	// Byte stream? Will that avoid saving to file?
 }
 
-func CreateObject(bucketName string, objectKey string) *Object {
+func CreateObject(sugar *zap.SugaredLogger, bucketName string, objectKey string) (*Object, error) {
 	// Make sure cache dir exists??
 	config, err := config.GetConfig()
 	if err != nil {
-		fmt.Println("Failed to get config in object: ", err)
+		sugar.Errorw("Failed to get config in object: ",
+			"error", err,
+		)
+		return nil, err
 	}
 	cachePath := config.CachePath + bucketName + "/" + objectKey
+	sugar.Debugw("Cache path: ",
+		"cachePath", cachePath,
+	)
 	cachePerms := fs.FileMode(config.CachePerms)
-	return &Object{ObjectKey: objectKey, BucketName: bucketName, CachePath: cachePath, cachePerms: cachePerms}
+	return &Object{
+		sugar:      sugar,
+		ObjectKey:  objectKey,
+		BucketName: bucketName,
+		CachePath:  cachePath,
+		cachePerms: cachePerms,
+	}, nil
 }
 
 func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
@@ -33,7 +47,9 @@ func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
 	destDir := filepath.Dir(o.CachePath)
 	if _, err := os.Stat(destDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(destDir, o.cachePerms); err != nil {
-			fmt.Println("Failed to create parent directory: ", err)
+			o.sugar.Errorw("Failed to create parent directory: ",
+				"error", err,
+			)
 			return err
 		}
 	}
@@ -41,7 +57,9 @@ func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
 	// Write the byte stream to the file
 	err := ioutil.WriteFile(o.CachePath, objectStream, o.cachePerms)
 	if err != nil {
-		fmt.Println("Failed to save byte stream to file: ", err)
+		o.sugar.Errorw("Failed to save byte stream to file: ",
+			"error", err,
+		)
 		return err
 	}
 
@@ -49,16 +67,12 @@ func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
 }
 
 func (o *Object) RemoveFileFromCache() error {
-	fmt.Println("Removing file from cache: ", o.CachePath)
+	o.sugar.Errorw("Removing file from cache: ", o.CachePath)
 	err := os.Remove(o.CachePath)
 	if err != nil {
-		fmt.Println("Failed to remove file from cache: ", err)
+		o.sugar.Errorw("Failed to remove file from cache: ",
+			"error", err,
+		)
 	}
-	fmt.Println()
 	return nil
-}
-
-func (o *Object) GenerateHash() (string, error) {
-	hash := "hash"
-	return hash, nil
 }

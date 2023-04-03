@@ -3,12 +3,12 @@ package objectstore
 import (
 	"aegis/internal/config"
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/minio-go/v7/pkg/tags"
+	"go.uber.org/zap"
 )
 
 type ObjectStoreCollector interface {
@@ -18,15 +18,18 @@ type ObjectStoreCollector interface {
 }
 
 type ObjectStore struct {
+	sugar                *zap.SugaredLogger
 	minioClient          *minio.Client
 	objectStoreCollector ObjectStoreCollector
 }
 
-func CreateObjectStore(objectStoreCollector ObjectStoreCollector) (*ObjectStore, error) {
-	fmt.Println("Creating object store")
+func CreateObjectStore(sugar *zap.SugaredLogger, objectStoreCollector ObjectStoreCollector) (*ObjectStore, error) {
+	sugar.Debugln("Creating object store")
 	config, err := config.GetConfig()
 	if err != nil {
-		fmt.Println("Error getting config in minio: ", err)
+		sugar.Errorw("Error getting config in minio",
+			"error", err,
+		)
 		return nil, err
 	}
 	endpoint := config.Services.Minio.Endpoint
@@ -38,23 +41,29 @@ func CreateObjectStore(objectStoreCollector ObjectStoreCollector) (*ObjectStore,
 		Secure: useSSL,
 	})
 	if err != nil {
-		fmt.Println("Connecting to MinIO failed: ", err)
+		sugar.Errorw("Connecting to MinIO failed",
+			"error", err,
+		)
 		return nil, err
 	}
-	return &ObjectStore{minioClient: minioClient, objectStoreCollector: objectStoreCollector}, nil
+	return &ObjectStore{sugar: sugar, minioClient: minioClient, objectStoreCollector: objectStoreCollector}, nil
 }
 
 func (m *ObjectStore) GetObject(bucketName string, objectName string) ([]byte, error) {
 	object, err := m.minioClient.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
-		fmt.Println("Error getting object: ", err)
+		m.sugar.Errorw("Error getting object",
+			"error", err,
+		)
 		return nil, err
 	}
 	defer object.Close()
 
 	data, err := io.ReadAll(object)
 	if err != nil {
-		fmt.Println("Error reading object: ", err)
+		m.sugar.Errorw("Error reading object",
+			"error", err,
+		)
 		return nil, err
 	}
 	m.objectStoreCollector.GetObject()
@@ -64,7 +73,9 @@ func (m *ObjectStore) GetObject(bucketName string, objectName string) ([]byte, e
 func (m *ObjectStore) GetObjectTagging(bucketName string, objectName string) (*tags.Tags, error) {
 	tags, err := m.minioClient.GetObjectTagging(context.Background(), bucketName, objectName, minio.GetObjectTaggingOptions{})
 	if err != nil {
-		fmt.Println("Error getting object tags: ", err)
+		m.sugar.Errorw("Error getting object tags",
+			"error", err,
+		)
 		return nil, err
 	}
 	m.objectStoreCollector.GetObjectTagging()
@@ -74,7 +85,9 @@ func (m *ObjectStore) GetObjectTagging(bucketName string, objectName string) (*t
 func (m *ObjectStore) PutObjectTagging(bucketName string, objectName string, tags *tags.Tags) error {
 	err := m.minioClient.PutObjectTagging(context.Background(), bucketName, objectName, tags, minio.PutObjectTaggingOptions{})
 	if err != nil {
-		fmt.Println("Error setting object tag: ", err)
+		m.sugar.Errorw("Error setting object tag",
+			"error", err,
+		)
 		return err
 	}
 	m.objectStoreCollector.PutObjectTagging()
@@ -85,7 +98,9 @@ func (m *ObjectStore) AddObjectTagging(bucketName string, objectName string, new
 	// Adds a tag by getting tags and ammending them
 	objectTags, err := m.GetObjectTagging(bucketName, objectName)
 	if err != nil {
-		fmt.Println("Error getting object tags: ", err)
+		m.sugar.Errorw("Error getting object tags",
+			"error", err,
+		)
 		return err
 	}
 	tagMap := objectTags.ToMap()
@@ -95,7 +110,9 @@ func (m *ObjectStore) AddObjectTagging(bucketName string, objectName string, new
 	newObjectTags, err := tags.MapToObjectTags(tagMap)
 	err = m.PutObjectTagging(bucketName, objectName, newObjectTags)
 	if err != nil {
-		fmt.Println("Error setting object tag: ", err)
+		m.sugar.Errorw("Error setting object tag",
+			"error", err,
+		)
 		return err
 	}
 	return nil

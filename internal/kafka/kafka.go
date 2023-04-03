@@ -5,10 +5,10 @@ import (
 	"aegis/internal/object"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/url"
 
 	"github.com/segmentio/kafka-go"
+	"go.uber.org/zap"
 )
 
 type KafkaCollector interface {
@@ -16,16 +16,19 @@ type KafkaCollector interface {
 }
 
 type KafkaMgr struct {
+	sugar          *zap.SugaredLogger
 	reader         *kafka.Reader
 	scanChan       chan *object.Object
 	kafkaCollector KafkaCollector
 }
 
-func CreateKafkaManager(scanChan chan *object.Object, kafkaCollector KafkaCollector) (*KafkaMgr, error) {
-	fmt.Println("Creating Kafka Manager")
+func CreateKafkaManager(sugar *zap.SugaredLogger, scanChan chan *object.Object, kafkaCollector KafkaCollector) (*KafkaMgr, error) {
+	sugar.Debugw("Creating Kafka Manager")
 	config, err := config.GetConfig()
 	if err != nil {
-		fmt.Println("Error getting config in kafka: ", err)
+		sugar.Errorw("Error getting config in kafka: ",
+			"error", err,
+		)
 		return nil, err
 	}
 	conf := kafka.ReaderConfig{
@@ -36,32 +39,49 @@ func CreateKafkaManager(scanChan chan *object.Object, kafkaCollector KafkaCollec
 	}
 
 	reader := kafka.NewReader(conf)
-	return &KafkaMgr{reader: reader, scanChan: scanChan, kafkaCollector: kafkaCollector}, nil
+	return &KafkaMgr{
+		sugar:          sugar,
+		reader:         reader,
+		scanChan:       scanChan,
+		kafkaCollector: kafkaCollector,
+	}, nil
 }
 
 func (k *KafkaMgr) StartKafkaManager() (*KafkaMgr, error) {
-	fmt.Println("Listening for activity on Kafka...")
+	k.sugar.Debugw("Listening for activity on Kafka...")
 	for {
 		message, err := k.reader.ReadMessage(context.Background())
 		if err != nil {
-			fmt.Println("Error reading message from Kafka: ", err)
+			k.sugar.Errorw("Error reading message from Kafka: ",
+				"error", err,
+			)
 			return nil, err
 		}
 		newPut, bucketName, objectKey, err := k.decodeMessage(message)
 		if err != nil {
-			fmt.Println("Error decoding message: ", err)
+			k.sugar.Errorw("Error decoding message: ",
+				"error", err,
+			)
 			return nil, err
 		}
 		if newPut {
-			fmt.Println("Message: ", string(message.Value))
-			request := object.CreateObject(bucketName, objectKey)
+			k.sugar.Infow("Message",
+				string(message.Value),
+			)
+			request, err := object.CreateObject(k.sugar, bucketName, objectKey)
+			if err != nil {
+				k.sugar.Errorw("Error creating object: ",
+					"error", err,
+				)
+				return nil, err
+			}
 			k.scanChan <- request
 		}
 	}
 }
 
 func (k *KafkaMgr) StopKafkaManager() {
-	fmt.Println("Stopping Kafka Consumer")
+	k.sugar.Debugw("Stopping Kafka Consumer")
 }
 
 type MessageJson struct {
@@ -82,7 +102,9 @@ func (k *KafkaMgr) decodeMessage(message kafka.Message) (bool, string, string, e
 	data := MessageJson{}
 	err := json.Unmarshal([]byte(message.Value), &data)
 	if err != nil {
-		fmt.Println("Error unmarshalling json: ", err)
+		k.sugar.Errorw("Error unmarshalling json: ",
+			"error", err,
+		)
 		return false, "", "", err
 	}
 	// Potential Security Issue. Attackers can edit tags without scan
@@ -92,12 +114,16 @@ func (k *KafkaMgr) decodeMessage(message kafka.Message) (bool, string, string, e
 	// Using url.QueryUnescape to handle spaces in object names as they show as "+" which breaks the file path
 	bucketName, err := url.QueryUnescape(data.Records[0].S3.Bucket.Name)
 	if err != nil {
-		fmt.Println("Error unescaping bucket name: ", err)
+		k.sugar.Errorw("Error unescaping bucket name: ",
+			"error", err,
+		)
 		return false, "", "", err
 	}
 	objectKey, err := url.QueryUnescape(data.Records[0].S3.Object.Key)
 	if err != nil {
-		fmt.Println("Error unescaping object key: ", err)
+		k.sugar.Errorw("Error unescaping object key: ",
+			"error", err,
+		)
 		return false, "", "", err
 	}
 	return true, bucketName, objectKey, nil
