@@ -11,12 +11,17 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-type KafkaMgr struct {
-	reader   *kafka.Reader
-	scanChan chan *object.Object
+type KafkaCollector interface {
+	MessageReceived()
 }
 
-func CreateKafkaManager(scanChan chan *object.Object) (*KafkaMgr, error) {
+type KafkaMgr struct {
+	reader         *kafka.Reader
+	scanChan       chan *object.Object
+	kafkaCollector KafkaCollector
+}
+
+func CreateKafkaManager(scanChan chan *object.Object, kafkaCollector KafkaCollector) (*KafkaMgr, error) {
 	fmt.Println("Creating Kafka Manager")
 	config, err := config.GetConfig()
 	if err != nil {
@@ -31,7 +36,7 @@ func CreateKafkaManager(scanChan chan *object.Object) (*KafkaMgr, error) {
 	}
 
 	reader := kafka.NewReader(conf)
-	return &KafkaMgr{reader: reader, scanChan: scanChan}, nil
+	return &KafkaMgr{reader: reader, scanChan: scanChan, kafkaCollector: kafkaCollector}, nil
 }
 
 func (k *KafkaMgr) StartKafkaManager() (*KafkaMgr, error) {

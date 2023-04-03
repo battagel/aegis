@@ -11,11 +11,18 @@ import (
 	"github.com/minio/minio-go/v7/pkg/tags"
 )
 
-type ObjectStore struct {
-	minioClient *minio.Client
+type ObjectStoreCollector interface {
+	GetObject()
+	GetObjectTagging()
+	PutObjectTagging()
 }
 
-func CreateObjectStore() (*ObjectStore, error) {
+type ObjectStore struct {
+	minioClient          *minio.Client
+	objectStoreCollector ObjectStoreCollector
+}
+
+func CreateObjectStore(objectStoreCollector ObjectStoreCollector) (*ObjectStore, error) {
 	fmt.Println("Creating object store")
 	config, err := config.GetConfig()
 	if err != nil {
@@ -34,7 +41,7 @@ func CreateObjectStore() (*ObjectStore, error) {
 		fmt.Println("Connecting to MinIO failed: ", err)
 		return nil, err
 	}
-	return &ObjectStore{minioClient: minioClient}, nil
+	return &ObjectStore{minioClient: minioClient, objectStoreCollector: objectStoreCollector}, nil
 }
 
 func (m *ObjectStore) GetObject(bucketName string, objectName string) ([]byte, error) {
@@ -50,6 +57,7 @@ func (m *ObjectStore) GetObject(bucketName string, objectName string) ([]byte, e
 		fmt.Println("Error reading object: ", err)
 		return nil, err
 	}
+	m.objectStoreCollector.GetObject()
 	return data, nil
 }
 
@@ -59,6 +67,7 @@ func (m *ObjectStore) GetObjectTagging(bucketName string, objectName string) (*t
 		fmt.Println("Error getting object tags: ", err)
 		return nil, err
 	}
+	m.objectStoreCollector.GetObjectTagging()
 	return tags, nil
 }
 
@@ -68,6 +77,7 @@ func (m *ObjectStore) PutObjectTagging(bucketName string, objectName string, tag
 		fmt.Println("Error setting object tag: ", err)
 		return err
 	}
+	m.objectStoreCollector.PutObjectTagging()
 	return nil
 }
 

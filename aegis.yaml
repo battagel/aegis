@@ -2,7 +2,7 @@ cache_path: cache/
 cache_perms: 0644
 services:
   minio:
-    endpoint: 127.0.0.1:9000
+    endpoint: 10.10.6.233:9000
     access_key: minioadmin
     secret_key: minioadmin
     use_ssl: false

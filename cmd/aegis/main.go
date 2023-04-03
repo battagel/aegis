@@ -8,37 +8,73 @@ import (
 	"aegis/internal/object"
 	"aegis/internal/objectstore"
 	"aegis/internal/scanner"
-	"log"
+	"go.uber.org/zap"
 	"os"
 	"os/signal"
 )
 
 func run() int {
 	cli.PrintSplash()
-	logger := log.New(os.Stdout, "INFO: ", log.LstdFlags)
+	logger, err := zap.NewDevelopment()
+	// logger, err := zap.NewProduction()
+	defer logger.Sync()
+	sugar := logger.Sugar()
+
 	scanChan := make(chan *object.Object)
 	defer close(scanChan)
-	metricChan := make(chan string)
-	defer close(metricChan)
 
 	// Removes hidden control flow
-	logger.Println("Starting Aegis")
-	metricManager, err := metrics.CreateMetricManager(metricChan)
+	sugar.Infoln("Starting Aegis")
+	metricManager, err := metrics.CreateMetricManager(sugar)
 	if err != nil {
-		logger.Println("Error creating metric server")
+		sugar.Errorw("Error creating metric server",
+			"error", err,
+		)
 	}
-	objectStore, err := objectstore.CreateObjectStore()
+	objectStoreCollector, err := objectstore.CreateObjectStoreCollector()
 	if err != nil {
-		logger.Println("Error creating minio manager")
+		sugar.Errorw("Error creating object store collector",
+			"error", err,
+		)
 	}
-	kafkaManager, err := kafka.CreateKafkaManager(scanChan)
+	objectStore, err := objectstore.CreateObjectStore(objectStoreCollector)
 	if err != nil {
-		logger.Println("Error creating kafka manager")
+		sugar.Errorw("Error creating object store",
+			"error", err,
+		)
 	}
-	clamAV, err := scanner.CreateClamAV(objectStore, metricChan)
+
+	kafkaCollector, err := kafka.CreateKafkaCollector()
+	if err != nil {
+		sugar.Errorw("Error creating kafka collector",
+			"error", err,
+		)
+	}
+	kafkaManager, err := kafka.CreateKafkaManager(scanChan, kafkaCollector)
+	if err != nil {
+		sugar.Errorw("Error creating kafka manager",
+			"error", err,
+		)
+	}
+
+	scanCollector, err := scanner.CreateScanCollector()
+	if err != nil {
+		sugar.Errorw("Error creating scan collector",
+			"error", err,
+		)
+	}
+	clamAV, err := scanner.CreateClamAV(objectStore, scanCollector)
+	if err != nil {
+		sugar.Errorw("Error creating clamAV scanner",
+			"error", err,
+		)
+	}
+
 	dispatcher, err := dispatcher.CreateDispatcher([]dispatcher.Scanner{clamAV}, scanChan)
 	if err != nil {
-		logger.Println("Error creating antivirus manager")
+		sugar.Errorw("Error creating antivirus manager",
+			"error", err,
+		)
 	}
 
 	// sync.WaitGroup() as part of termination
@@ -49,7 +85,7 @@ func run() int {
 	sigchan := make(chan os.Signal)
 	signal.Notify(sigchan, os.Interrupt)
 	<-sigchan // Wait until interrupt
-	logger.Println("Shutting down Aegis")
+	sugar.Infoln("Shutting down Aegis")
 	// Cleanup stuff ...
 	// Only stop when all scans finished?
 	// Send signals to kafka and scan maanger to stop

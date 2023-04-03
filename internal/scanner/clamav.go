@@ -13,14 +13,21 @@ type ObjectStore interface {
 	AddObjectTagging(bucketName string, objectName string, newTags map[string]string) error
 }
 
+type ScanCollector interface {
+	FileScanned()
+	CleanFile()
+	InfectedFile()
+	ScanError()
+}
+
 type Scanner struct {
 	objectStore     ObjectStore
-	metricChan      chan string
+	scanCollector   ScanCollector
 	removeAfterScan bool
 	datetimeFormat  string
 }
 
-func CreateClamAV(objectStore ObjectStore, metricChan chan string) (*Scanner, error) {
+func CreateClamAV(objectStore ObjectStore, scanCollector ScanCollector) (*Scanner, error) {
 	config, err := config.GetConfig()
 	if err != nil {
 		fmt.Println("Error getting config in clamav: ", err)
@@ -28,7 +35,7 @@ func CreateClamAV(objectStore ObjectStore, metricChan chan string) (*Scanner, er
 	}
 	removeAfterScan := config.Services.ClamAV.RemoveAfterScan
 	datetimeFormat := config.Services.ClamAV.DatetimeFormat
-	return &Scanner{objectStore: objectStore, metricChan: metricChan, removeAfterScan: removeAfterScan, datetimeFormat: datetimeFormat}, nil
+	return &Scanner{objectStore: objectStore, scanCollector: scanCollector, removeAfterScan: removeAfterScan, datetimeFormat: datetimeFormat}, nil
 }
 
 func (s *Scanner) ScanObject(object *object.Object) error {
@@ -36,43 +43,43 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 	objectStream, err := s.objectStore.GetObject(object.BucketName, object.ObjectKey)
 	if err != nil {
 		fmt.Println("Error getting object from object store: ", err)
-		s.metricChan <- "scan_error"
+		s.scanCollector.ScanError()
 		return err
 	}
 
 	err = object.SaveByteStreamToFile(objectStream)
 	if err != nil {
 		fmt.Println("Error saving byte stream to file: ", err)
-		s.metricChan <- "scan_error"
+		s.scanCollector.ScanError()
 		return err
 	}
 
 	result, err := s.executeScan(object.CachePath)
 	if err != nil {
 		fmt.Println("Error executing scan: ", err)
-		s.metricChan <- "scan_error"
+		s.scanCollector.ScanError()
 		return err
 	}
-	s.metricChan <- "file_scanned"
+	s.scanCollector.FileScanned()
 	dt := time.Now().Format(s.datetimeFormat)
 	if result {
 		fmt.Println("Infected file: ", object.ObjectKey)
-		s.metricChan <- "infected_file"
+		s.scanCollector.InfectedFile()
 		newTags := map[string]string{"antivirus": "infected", "antivirus-last-scanned": dt}
 		err := s.objectStore.AddObjectTagging(object.BucketName, object.ObjectKey, newTags)
 		if err != nil {
 			fmt.Println("Error adding tag to object: ", err)
-			s.metricChan <- "scan_error"
+			s.scanCollector.ScanError()
 			return err
 		}
 	} else {
 		fmt.Println("Clean file: ", object.ObjectKey)
-		s.metricChan <- "clean_file"
+		s.scanCollector.CleanFile()
 		newTags := map[string]string{"antivirus": "scanned", "antivirus-last-scanned": dt}
 		err := s.objectStore.AddObjectTagging(object.BucketName, object.ObjectKey, newTags)
 		if err != nil {
 			fmt.Println("Error adding tag to object: ", err)
-			s.metricChan <- "scan_error"
+			s.scanCollector.ScanError()
 			return err
 		}
 	}
@@ -80,7 +87,7 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 		err := object.RemoveFileFromCache()
 		if err != nil {
 			fmt.Println("Error removing file from cache: ", err)
-			s.metricChan <- "scan_error"
+			s.scanCollector.ScanError()
 			return err
 		}
 	}
