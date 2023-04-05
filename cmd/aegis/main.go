@@ -2,28 +2,46 @@ package main
 
 import (
 	"aegis/internal/cli"
+	"aegis/internal/config"
 	"aegis/internal/dispatcher"
 	"aegis/internal/kafka"
 	"aegis/internal/metrics"
 	"aegis/internal/object"
 	"aegis/internal/objectstore"
 	"aegis/internal/scanner"
-	"go.uber.org/zap"
+	"fmt"
 	"os"
 	"os/signal"
+
+	"go.uber.org/zap"
 )
 
 func run() int {
-	cli.PrintSplash()
-	logger, err := zap.NewDevelopment()
-	// logger, err := zap.NewProduction()
+	// Config and Logger
+	config, err := config.GetConfig()
+	if err != nil {
+		fmt.Println("Error getting config in main :", err)
+	}
+	var logger *zap.Logger
+	if config.Debug {
+		cli.PrintSplash()
+		logger, err = zap.NewDevelopment()
+		if err != nil {
+			fmt.Println("Error creating logger in main :", err)
+		}
+	} else {
+		logger, err = zap.NewProduction()
+		if err != nil {
+			fmt.Println("Error creating logger in main :", err)
+		}
+	}
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
+	// Removes hidden control flow
 	scanChan := make(chan *object.Object)
 	defer close(scanChan)
 
-	// Removes hidden control flow
 	sugar.Infoln("Starting Aegis")
 	metricManager, err := metrics.CreateMetricManager(sugar)
 	if err != nil {
@@ -87,6 +105,8 @@ func run() int {
 	<-sigchan // Wait until interrupt
 	sugar.Infoln("Shutting down Aegis")
 	// Cleanup stuff ...
+	kafkaManager.StopKafkaManager()
+	dispatcher.StopDispatcher()
 	// Only stop when all scans finished?
 	// Send signals to kafka and scan maanger to stop
 	// sync.waitgroup to wait for all scans to finish

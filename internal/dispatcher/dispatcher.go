@@ -26,7 +26,7 @@ func CreateDispatcher(sugar *zap.SugaredLogger, scanners []Scanner, scanChan cha
 }
 
 func (d *Dispatcher) StartDispatcher() error {
-	d.sugar.Debugln("Starting dispatcher loop")
+	d.sugar.Debugln("Starting dispatcher loop...")
 	for {
 		request := <-d.scanChan
 		for _, scanner := range d.scanners {

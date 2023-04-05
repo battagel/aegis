@@ -38,6 +38,7 @@ type ServicesConfig struct {
 }
 
 type Config struct {
+	Debug      bool           `mapstructure:"debug"`
 	CachePath  string         `mapstructure:"cache_path"`
 	CachePerms int            `mapstructure:"cache_perms"`
 	Services   ServicesConfig `mapstructure:"services"`

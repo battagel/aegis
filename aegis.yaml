@@ -1,3 +1,4 @@
+debug: true
 cache_path: cache/
 cache_perms: 0644
 services:
@@ -16,5 +17,5 @@ services:
     remove_after_scan: true
     datetime_format: "01-02-2006 15:04:05"
   prometheus:
-    endpoint: 127.0.0.1:9090
+    endpoint: 127.0.0.1:2112
     path: /metrics

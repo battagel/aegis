@@ -23,14 +23,17 @@ type KafkaMgr struct {
 }
 
 func CreateKafkaManager(sugar *zap.SugaredLogger, scanChan chan *object.Object, kafkaCollector KafkaCollector) (*KafkaMgr, error) {
-	sugar.Debugw("Creating Kafka Manager")
 	config, err := config.GetConfig()
 	if err != nil {
-		sugar.Errorw("Error getting config in kafka: ",
+		sugar.Errorw("Error getting config in kafka",
 			"error", err,
 		)
 		return nil, err
 	}
+	sugar.Debugw("Creating Kafka Manager",
+		"brokers", config.Services.Kafka.Brokers,
+		"topic", config.Services.Kafka.Topic,
+	)
 	conf := kafka.ReaderConfig{
 		Brokers:  config.Services.Kafka.Brokers,
 		Topic:    config.Services.Kafka.Topic,
@@ -48,29 +51,30 @@ func CreateKafkaManager(sugar *zap.SugaredLogger, scanChan chan *object.Object, 
 }
 
 func (k *KafkaMgr) StartKafkaManager() (*KafkaMgr, error) {
-	k.sugar.Debugw("Listening for activity on Kafka...")
+	k.sugar.Debugln("Listening for activity on Kafka...")
 	for {
 		message, err := k.reader.ReadMessage(context.Background())
 		if err != nil {
-			k.sugar.Errorw("Error reading message from Kafka: ",
+			k.sugar.Errorw("Error reading message from Kafka",
 				"error", err,
 			)
 			return nil, err
 		}
 		newPut, bucketName, objectKey, err := k.decodeMessage(message)
 		if err != nil {
-			k.sugar.Errorw("Error decoding message: ",
+			k.sugar.Errorw("Error decoding message",
 				"error", err,
 			)
 			return nil, err
 		}
 		if newPut {
 			k.sugar.Infow("Message",
-				string(message.Value),
+				"message", string(message.Value),
 			)
+			k.kafkaCollector.MessageReceived()
 			request, err := object.CreateObject(k.sugar, bucketName, objectKey)
 			if err != nil {
-				k.sugar.Errorw("Error creating object: ",
+				k.sugar.Errorw("Error creating object",
 					"error", err,
 				)
 				return nil, err
@@ -81,7 +85,7 @@ func (k *KafkaMgr) StartKafkaManager() (*KafkaMgr, error) {
 }
 
 func (k *KafkaMgr) StopKafkaManager() {
-	k.sugar.Debugw("Stopping Kafka Consumer")
+	k.sugar.Debugln("Stopping Kafka Consumer")
 }
 
 type MessageJson struct {
@@ -102,7 +106,7 @@ func (k *KafkaMgr) decodeMessage(message kafka.Message) (bool, string, string, e
 	data := MessageJson{}
 	err := json.Unmarshal([]byte(message.Value), &data)
 	if err != nil {
-		k.sugar.Errorw("Error unmarshalling json: ",
+		k.sugar.Errorw("Error unmarshalling json",
 			"error", err,
 		)
 		return false, "", "", err
@@ -114,14 +118,14 @@ func (k *KafkaMgr) decodeMessage(message kafka.Message) (bool, string, string, e
 	// Using url.QueryUnescape to handle spaces in object names as they show as "+" which breaks the file path
 	bucketName, err := url.QueryUnescape(data.Records[0].S3.Bucket.Name)
 	if err != nil {
-		k.sugar.Errorw("Error unescaping bucket name: ",
+		k.sugar.Errorw("Error unescaping bucket name",
 			"error", err,
 		)
 		return false, "", "", err
 	}
 	objectKey, err := url.QueryUnescape(data.Records[0].S3.Object.Key)
 	if err != nil {
-		k.sugar.Errorw("Error unescaping object key: ",
+		k.sugar.Errorw("Error unescaping object key",
 			"error", err,
 		)
 		return false, "", "", err

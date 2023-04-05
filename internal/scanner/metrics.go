@@ -12,32 +12,25 @@ type scanCollector struct {
 	infectedFiles prometheus.Counter
 	cleanFiles    prometheus.Counter
 	scanErrors    prometheus.Counter
+	scanTime      prometheus.Histogram
 }
 
 func CreateScanCollector(sugar *zap.SugaredLogger) (*scanCollector, error) {
-	filesScanned := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_total_scans", Help: "Total number of scans performed by Aegis"})
-	cleanFiles := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_infected_files_scanned", Help: "Total of infected files scanned by Aegis"})
-	infectedFiles := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_clean_files_scanned", Help: "Total of clean files scanned by Aegis"})
-	scanErrors := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scan_errors", Help: "Total number of errors encountered during scans by Aegis"})
+	filesScanned := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scanner_total_scans", Help: "Total number of scans performed by Aegis"})
+	cleanFiles := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scanner_infected_files", Help: "Total of infected files scanned by Aegis"})
+	infectedFiles := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scanner_clean_files", Help: "Total of clean files scanned by Aegis"})
+	scanErrors := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scanner_errors", Help: "Total number of errors encountered during scans by Aegis"})
+	scanTime := promauto.NewHistogram(prometheus.HistogramOpts{Name: "aegis_scanner_time", Help: "Time taken to perform a scan", Buckets: []float64{0, 125, 250, 500, 1000, 2000, 4000, 8000, 16000}})
 	return &scanCollector{
 		sugar:         sugar,
 		filesScanned:  filesScanned,
 		infectedFiles: infectedFiles,
 		cleanFiles:    cleanFiles,
 		scanErrors:    scanErrors,
+		scanTime:      scanTime,
 	}, nil
 }
 
-// Covered by promautos in-built registry
-// func (c *scanCollector) GatherCollector() {
-//
-// }
-//
-// func (c *scanCollector) DescribeCollector() {
-//
-// }
-
-// Metric update functions
 func (c *scanCollector) FileScanned() {
 	c.sugar.Debug("Incrementing files scanned counter")
 	c.filesScanned.Inc()
@@ -56,4 +49,10 @@ func (c *scanCollector) InfectedFile() {
 func (c *scanCollector) ScanError() {
 	c.sugar.Debug("Incrementing scan errors counter")
 	c.scanErrors.Inc()
+}
+
+func (c *scanCollector) ScanTime(t float64) {
+	c.sugar.Debug("Incrementing scan time histogram")
+	c.sugar.Debugw("Scan time", "time", t)
+	c.scanTime.Observe(t)
 }

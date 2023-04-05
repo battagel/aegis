@@ -31,7 +31,11 @@ func CreateMetricManager(sugar *zap.SugaredLogger) (*Prometheus, error) {
 
 func (p *Prometheus) StartMetricManager() {
 	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe("localhost:2112", nil)
+		p.sugar.Debugw("Exposing metrics at",
+			"endpoint", p.endpoint,
+			"path", p.path,
+		)
+		http.Handle(p.path, promhttp.Handler())
+		http.ListenAndServe(p.endpoint, nil)
 	}()
 }

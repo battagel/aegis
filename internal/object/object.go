@@ -23,13 +23,13 @@ func CreateObject(sugar *zap.SugaredLogger, bucketName string, objectKey string)
 	// Make sure cache dir exists??
 	config, err := config.GetConfig()
 	if err != nil {
-		sugar.Errorw("Failed to get config in object: ",
+		sugar.Errorw("Failed to get config in object",
 			"error", err,
 		)
 		return nil, err
 	}
 	cachePath := config.CachePath + bucketName + "/" + objectKey
-	sugar.Debugw("Cache path: ",
+	sugar.Debugw("Cache path",
 		"cachePath", cachePath,
 	)
 	cachePerms := fs.FileMode(config.CachePerms)
@@ -47,7 +47,7 @@ func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
 	destDir := filepath.Dir(o.CachePath)
 	if _, err := os.Stat(destDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(destDir, o.cachePerms); err != nil {
-			o.sugar.Errorw("Failed to create parent directory: ",
+			o.sugar.Errorw("Failed to create parent directory",
 				"error", err,
 			)
 			return err
@@ -57,7 +57,7 @@ func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
 	// Write the byte stream to the file
 	err := ioutil.WriteFile(o.CachePath, objectStream, o.cachePerms)
 	if err != nil {
-		o.sugar.Errorw("Failed to save byte stream to file: ",
+		o.sugar.Errorw("Failed to save byte stream to file",
 			"error", err,
 		)
 		return err
@@ -67,10 +67,12 @@ func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
 }
 
 func (o *Object) RemoveFileFromCache() error {
-	o.sugar.Errorw("Removing file from cache: ", o.CachePath)
+	o.sugar.Debugw("Removing file from cache",
+		"cachePath", o.CachePath,
+	)
 	err := os.Remove(o.CachePath)
 	if err != nil {
-		o.sugar.Errorw("Failed to remove file from cache: ",
+		o.sugar.Errorw("Failed to remove file from cache",
 			"error", err,
 		)
 	}
