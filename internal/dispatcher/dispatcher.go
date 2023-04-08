@@ -30,7 +30,7 @@ func (d *Dispatcher) StartDispatcher() error {
 	for {
 		request := <-d.scanChan
 		for _, scanner := range d.scanners {
-			// Ref?
+			// Pass by reference??
 			go scanner.ScanObject(request)
 		}
 	}

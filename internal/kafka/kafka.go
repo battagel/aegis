@@ -15,14 +15,18 @@ type KafkaCollector interface {
 	MessageReceived()
 }
 
+type KafkaReader interface {
+	ReadMessage(context.Context) (kafka.Message, error)
+}
+
 type KafkaMgr struct {
 	sugar          *zap.SugaredLogger
-	reader         *kafka.Reader
+	kafkaReader    KafkaReader
 	scanChan       chan *object.Object
 	kafkaCollector KafkaCollector
 }
 
-func CreateKafkaManager(sugar *zap.SugaredLogger, scanChan chan *object.Object, kafkaCollector KafkaCollector) (*KafkaMgr, error) {
+func CreateKafkaManager(sugar *zap.SugaredLogger, scanChan chan *object.Object, kafkaReader KafkaReader, kafkaCollector KafkaCollector) (*KafkaMgr, error) {
 	config, err := config.GetConfig()
 	if err != nil {
 		sugar.Errorw("Error getting config in kafka",
@@ -34,17 +38,9 @@ func CreateKafkaManager(sugar *zap.SugaredLogger, scanChan chan *object.Object, 
 		"brokers", config.Services.Kafka.Brokers,
 		"topic", config.Services.Kafka.Topic,
 	)
-	conf := kafka.ReaderConfig{
-		Brokers:  config.Services.Kafka.Brokers,
-		Topic:    config.Services.Kafka.Topic,
-		GroupID:  config.Services.Kafka.GroupID,
-		MaxBytes: config.Services.Kafka.MaxBytes,
-	}
-
-	reader := kafka.NewReader(conf)
 	return &KafkaMgr{
 		sugar:          sugar,
-		reader:         reader,
+		kafkaReader:    kafkaReader,
 		scanChan:       scanChan,
 		kafkaCollector: kafkaCollector,
 	}, nil
@@ -53,7 +49,7 @@ func CreateKafkaManager(sugar *zap.SugaredLogger, scanChan chan *object.Object, 
 func (k *KafkaMgr) StartKafkaManager() (*KafkaMgr, error) {
 	k.sugar.Debugln("Listening for activity on Kafka...")
 	for {
-		message, err := k.reader.ReadMessage(context.Background())
+		message, err := k.kafkaReader.ReadMessage(context.Background())
 		if err != nil {
 			k.sugar.Errorw("Error reading message from Kafka",
 				"error", err,

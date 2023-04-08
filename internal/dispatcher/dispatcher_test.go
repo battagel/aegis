@@ -2,70 +2,56 @@ package dispatcher
 
 import (
 	"aegis/internal/object"
+	"aegis/mocks"
+	"fmt"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
-type testScanner struct{}
-
-func (s *testScanner) ScanObject(o *object.Object) error {
-	return nil
+type CommonTestItems struct {
+	Sugar *zap.SugaredLogger
 }
 
-func TestCreateDispatcher(t *testing.T) {
-	scanner := &testScanner{}
-	scanChan := make(chan *object.Object)
-	dispatcher, err := CreateDispatcher([]Scanner{scanner}, scanChan)
-
+func ProvideCommonTestItems(t *testing.T) *CommonTestItems {
+	t.Helper()
+	logger, err := zap.NewDevelopment()
 	if err != nil {
-		t.Errorf("expected nil error, but got %v", err)
+		fmt.Printf("Error creating logger: %s", err)
 	}
-
-	if dispatcher == nil {
-		t.Error("expected dispatcher to be initialized, but got nil")
-	}
+	defer logger.Sync()
+	sugar := logger.Sugar()
+	return &CommonTestItems{Sugar: sugar}
 }
 
-func TestStartDispatcher(t *testing.T) {
-	scanner := &testScanner{}
+func TestDispatcher(t *testing.T) {
+	commonTestItems := ProvideCommonTestItems(t)
 	scanChan := make(chan *object.Object)
+	mockScanner := new(mocks.Scanner)
 
-	dispatcher, err := CreateDispatcher([]Scanner{scanner}, scanChan)
-	if err != nil {
-		t.Errorf("unexpected error while creating dispatcher: %v", err)
+	testObjectGood := object.Object{
+		ObjectKey:  "good.txt",
+		BucketName: "test-bucket",
+		CachePath:  "/cache",
 	}
+
+	testObjectBad := object.Object{
+		ObjectKey:  "bad.txt",
+		BucketName: "test-bucket",
+		CachePath:  "/cache",
+	}
+
+	mockScanner.On("ScanObject", testObjectGood).Return(false)
+	mockScanner.On("ScanObject", testObjectBad).Return(true)
+
+	dispatcher, err := CreateDispatcher(commonTestItems.Sugar, []Scanner{mockScanner}, scanChan)
+	assert.NoError(t, err)
 
 	go dispatcher.StartDispatcher()
 
-	objectToScan := &object.Object{}
-	scanChan <- objectToScan
-
-	// Sleep for some time to allow scanner to scan the object
-	// and to prevent the test from exiting before the scanner completes
-	// its task
-	time.Sleep(time.Millisecond * 10)
-
-	// Ensure that the ScanObject method of the scanner is called
-	if objectToScan.ScannedBy != scanner {
-		t.Error("expected object to be scanned by the scanner, but it wasn't")
-	}
-
-	// Stop the dispatcher loop
+	// Send stuff to get scanned
+	scanChan <- &testObjectGood
+	scanChan <- &testObjectBad
 	dispatcher.StopDispatcher()
-}
-
-func TestStopDispatcher(t *testing.T) {
-	scanner := &testScanner{}
-	scanChan := make(chan *object.Object)
-	dispatcher, err := CreateDispatcher([]Scanner{scanner}, scanChan)
-
-	if err != nil {
-		t.Errorf("unexpected error while creating dispatcher: %v", err)
-	}
-
-	err = dispatcher.StopDispatcher()
-
-	if err != nil {
-		t.Errorf("expected nil error, but got %v", err)
-	}
 }

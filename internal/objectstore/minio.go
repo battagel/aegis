@@ -1,12 +1,10 @@
 package objectstore
 
 import (
-	"aegis/internal/config"
 	"context"
 	"io"
 
 	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/minio-go/v7/pkg/tags"
 	"go.uber.org/zap"
 )
@@ -17,35 +15,20 @@ type ObjectStoreCollector interface {
 	PutObjectTagging()
 }
 
+type MinioClient interface {
+	GetObject(ctx context.Context, bucketName, objectName string, opts minio.GetObjectOptions) (*minio.Object, error)
+	GetObjectTagging(ctx context.Context, bucketName, objectName string, opts minio.GetObjectTaggingOptions) (*tags.Tags, error)
+	PutObjectTagging(ctx context.Context, bucketName, objectName string, tags *tags.Tags, opts minio.PutObjectTaggingOptions) error
+}
+
 type ObjectStore struct {
 	sugar                *zap.SugaredLogger
-	minioClient          *minio.Client
+	minioClient          MinioClient
 	objectStoreCollector ObjectStoreCollector
 }
 
-func CreateObjectStore(sugar *zap.SugaredLogger, objectStoreCollector ObjectStoreCollector) (*ObjectStore, error) {
+func CreateObjectStore(sugar *zap.SugaredLogger, minioClient MinioClient, objectStoreCollector ObjectStoreCollector) (*ObjectStore, error) {
 	sugar.Debugln("Creating object store")
-	config, err := config.GetConfig()
-	if err != nil {
-		sugar.Errorw("Error getting config in minio",
-			"error", err,
-		)
-		return nil, err
-	}
-	endpoint := config.Services.Minio.Endpoint
-	accessKey := config.Services.Minio.AccessKey
-	secretKey := config.Services.Minio.SecretKey
-	useSSL := config.Services.Minio.UseSSL
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: useSSL,
-	})
-	if err != nil {
-		sugar.Errorw("Connecting to MinIO failed",
-			"error", err,
-		)
-		return nil, err
-	}
 	return &ObjectStore{sugar: sugar, minioClient: minioClient, objectStoreCollector: objectStoreCollector}, nil
 }
 

@@ -13,6 +13,9 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	kafkaGo "github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 )
 
@@ -49,18 +52,40 @@ func run() int {
 			"error", err,
 		)
 	}
+
+	endpoint := config.Services.Minio.Endpoint
+	accessKey := config.Services.Minio.AccessKey
+	secretKey := config.Services.Minio.SecretKey
+	useSSL := config.Services.Minio.UseSSL
+	minioClient, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Secure: useSSL,
+	})
+	if err != nil {
+		sugar.Errorw("Connecting to MinIO failed",
+			"error", err,
+		)
+	}
 	objectStoreCollector, err := objectstore.CreateObjectStoreCollector(sugar)
 	if err != nil {
 		sugar.Errorw("Error creating object store collector",
 			"error", err,
 		)
 	}
-	objectStore, err := objectstore.CreateObjectStore(sugar, objectStoreCollector)
+	objectStore, err := objectstore.CreateObjectStore(sugar, minioClient, objectStoreCollector)
 	if err != nil {
 		sugar.Errorw("Error creating object store",
 			"error", err,
 		)
 	}
+
+	conf := kafkaGo.ReaderConfig{
+		Brokers:  config.Services.Kafka.Brokers,
+		Topic:    config.Services.Kafka.Topic,
+		GroupID:  config.Services.Kafka.GroupID,
+		MaxBytes: config.Services.Kafka.MaxBytes,
+	}
+	kafkaReader := kafkaGo.NewReader(conf)
 
 	kafkaCollector, err := kafka.CreateKafkaCollector(sugar)
 	if err != nil {
@@ -68,7 +93,7 @@ func run() int {
 			"error", err,
 		)
 	}
-	kafkaManager, err := kafka.CreateKafkaManager(sugar, scanChan, kafkaCollector)
+	kafkaManager, err := kafka.CreateKafkaManager(sugar, scanChan, kafkaReader, kafkaCollector)
 	if err != nil {
 		sugar.Errorw("Error creating kafka manager",
 			"error", err,

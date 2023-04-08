@@ -38,4 +38,6 @@ help     Print this message
 build    Create the binary
 run      Run the binary
 vendor   Download the vendored dependencies
+test     Run the tests
+mocks    Generate the mocks
 ```
