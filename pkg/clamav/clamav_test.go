@@ -1,4 +1,4 @@
-package scanner
+package clamav
 
 import (
 	"aegis/internal/objectstore"

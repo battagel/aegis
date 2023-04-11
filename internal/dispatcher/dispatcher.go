@@ -2,8 +2,7 @@ package dispatcher
 
 import (
 	"aegis/internal/object"
-
-	"go.uber.org/zap"
+	"aegis/pkg/logger"
 )
 
 type Scanner interface {
@@ -11,22 +10,22 @@ type Scanner interface {
 }
 
 type Dispatcher struct {
-	sugar    *zap.SugaredLogger
+	logger   logger.Logger
 	scanChan chan *object.Object
 	scanners []Scanner
 }
 
-func CreateDispatcher(sugar *zap.SugaredLogger, scanners []Scanner, scanChan chan *object.Object) (*Dispatcher, error) {
-	sugar.Debugln("Creating dispatcher")
+func CreateDispatcher(logger logger.Logger, scanners []Scanner, scanChan chan *object.Object) (*Dispatcher, error) {
+	logger.Debugln("Creating dispatcher")
 	return &Dispatcher{
-		sugar:    sugar,
+		logger:   logger,
 		scanChan: scanChan,
 		scanners: scanners,
 	}, nil
 }
 
-func (d *Dispatcher) StartDispatcher() error {
-	d.sugar.Debugln("Starting dispatcher loop...")
+func (d *Dispatcher) Start() error {
+	d.logger.Debugln("Starting dispatcher loop...")
 	for {
 		request := <-d.scanChan
 		for _, scanner := range d.scanners {
@@ -36,7 +35,7 @@ func (d *Dispatcher) StartDispatcher() error {
 	}
 }
 
-func (d *Dispatcher) StopDispatcher() error {
-	d.sugar.Debugln("Stopping dispatcher")
+func (d *Dispatcher) Stop() error {
+	d.logger.Debugln("Stopping dispatcher")
 	return nil
 }

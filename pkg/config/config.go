@@ -6,6 +6,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+type LoggerConfig struct {
+	Level    string `mapstructure:"level"`
+	Encoding string `mapstructure:"encoding"`
+}
+
 type MinioConfig struct {
 	Endpoint  string `mapstructure:"endpoint"`
 	AccessKey string `mapstructure:"access_key"`
@@ -23,6 +28,8 @@ type KafkaConfig struct {
 type ClamAVConfig struct {
 	RemoveAfterScan bool   `mapstructure:"remove_after_scan"`
 	DatetimeFormat  string `mapstructure:"datetime_format"`
+	Path            string `mapstructure:"path"`
+	Perms           int    `mapstructure:"perms"`
 }
 
 type PrometheusConfig struct {
@@ -30,18 +37,21 @@ type PrometheusConfig struct {
 	Path     string `mapstructure:"path"`
 }
 
-type ServicesConfig struct {
+type PostgresConfig struct {
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	Endpoint string `mapstructure:"endpoint"`
+	Database string `mapstructure:"database"`
+	Table    string `mapstructure:"table"`
+}
+
+type Config struct {
+	Logger     LoggerConfig     `mapstructure:"logger"`
 	Minio      MinioConfig      `mapstructure:"minio"`
 	Kafka      KafkaConfig      `mapstructure:"kafka"`
 	ClamAV     ClamAVConfig     `mapstructure:"clamav"`
 	Prometheus PrometheusConfig `mapstructure:"prometheus"`
-}
-
-type Config struct {
-	Debug      bool           `mapstructure:"debug"`
-	CachePath  string         `mapstructure:"cache_path"`
-	CachePerms int            `mapstructure:"cache_perms"`
-	Services   ServicesConfig `mapstructure:"services"`
+	Postgres   PostgresConfig   `mapstructure:"postgres"`
 }
 
 var vp *viper.Viper
@@ -50,7 +60,7 @@ func GetConfig() (*Config, error) {
 	vp = viper.New()
 	var config Config
 
-	vp.SetConfigName("aegis")
+	vp.SetConfigName("config")
 	vp.SetConfigType("yaml")
 	vp.AddConfigPath(".")
 

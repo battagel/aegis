@@ -1,4 +1,4 @@
-package objectstore
+package minio
 
 import (
 	"aegis/mocks"

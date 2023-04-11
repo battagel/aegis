@@ -1,137 +1,120 @@
 package main
 
 import (
+	"aegis/internal/auditlog"
 	"aegis/internal/cli"
-	"aegis/internal/config"
 	"aegis/internal/dispatcher"
-	"aegis/internal/kafka"
-	"aegis/internal/metrics"
+	"aegis/internal/events"
 	"aegis/internal/object"
 	"aegis/internal/objectstore"
 	"aegis/internal/scanner"
+	"aegis/pkg/clamav"
+	"aegis/pkg/config"
+	"aegis/pkg/kafka"
+	"aegis/pkg/logger"
+	"aegis/pkg/minio"
+	"aegis/pkg/postgres"
+	"aegis/pkg/prometheus"
 	"fmt"
 	"os"
 	"os/signal"
-
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-	kafkaGo "github.com/segmentio/kafka-go"
-	"go.uber.org/zap"
 )
 
 func run() int {
-	// Config and Logger
+	cli.PrintSplash()
 	config, err := config.GetConfig()
+	logger, err := logger.CreateZapLogger(config.Logger.Level, config.Logger.Encoding)
 	if err != nil {
-		fmt.Println("Error getting config in main :", err)
+		fmt.Println("Error creating logger", err)
 	}
-	var logger *zap.Logger
-	if config.Debug {
-		cli.PrintSplash()
-		logger, err = zap.NewDevelopment()
-		if err != nil {
-			fmt.Println("Error creating logger in main :", err)
-		}
-	} else {
-		logger, err = zap.NewProduction()
-		if err != nil {
-			fmt.Println("Error creating logger in main :", err)
-		}
-	}
-	defer logger.Sync()
-	sugar := logger.Sugar()
 
-	// Removes hidden control flow
 	scanChan := make(chan *object.Object)
 	defer close(scanChan)
 
-	sugar.Infoln("Starting Aegis")
-	metricManager, err := metrics.CreateMetricManager(sugar)
+	logger.Infoln("Starting Aegis")
+	logger.Debugln("Creating metric collectors")
+	metrics, err := prometheus.CreatePrometheusServer(logger, config.Prometheus.Endpoint, config.Prometheus.Path)
 	if err != nil {
-		sugar.Errorw("Error creating metric server",
+		logger.Errorw("Error creating metric collectors",
+			"error", err,
+		)
+	}
+	objectStoreCollector, err := objectstore.CreateObjectStoreCollector(logger)
+	if err != nil {
+		logger.Errorw("Error creating object store collector",
+			"error", err,
+		)
+	}
+	eventsCollector, err := events.CreateKafkaCollector(logger)
+	if err != nil {
+		logger.Errorw("Error creating kafka collector",
+			"error", err,
+		)
+	}
+	scanCollector, err := scanner.CreateScanCollector(logger)
+	if err != nil {
+		logger.Errorw("Error creating collectors",
 			"error", err,
 		)
 	}
 
-	endpoint := config.Services.Minio.Endpoint
-	accessKey := config.Services.Minio.AccessKey
-	secretKey := config.Services.Minio.SecretKey
-	useSSL := config.Services.Minio.UseSSL
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: useSSL,
-	})
+	postgresDB, dbClose, err := postgres.CreatePostgresDB(logger, config.Postgres.User, config.Postgres.Password, config.Postgres.Endpoint, config.Postgres.Database)
 	if err != nil {
-		sugar.Errorw("Connecting to MinIO failed",
+		logger.Errorw("Error creating postgres database",
 			"error", err,
 		)
 	}
-	objectStoreCollector, err := objectstore.CreateObjectStoreCollector(sugar)
+	defer dbClose()
+	auditLogger, err := auditlog.CreateAuditLogger(logger, postgresDB, config.Postgres.Table)
+
+	minioStore, err := minio.CreateMinio(logger, config.Minio.Endpoint, config.Minio.AccessKey, config.Minio.SecretKey, config.Minio.UseSSL)
 	if err != nil {
-		sugar.Errorw("Error creating object store collector",
+		logger.Errorw("Error creating minio client",
 			"error", err,
 		)
 	}
-	objectStore, err := objectstore.CreateObjectStore(sugar, minioClient, objectStoreCollector)
+	objectStore, err := objectstore.CreateObjectStore(logger, minioStore, objectStoreCollector)
 	if err != nil {
-		sugar.Errorw("Error creating object store",
+		logger.Errorw("Error creating object store",
 			"error", err,
 		)
 	}
 
-	conf := kafkaGo.ReaderConfig{
-		Brokers:  config.Services.Kafka.Brokers,
-		Topic:    config.Services.Kafka.Topic,
-		GroupID:  config.Services.Kafka.GroupID,
-		MaxBytes: config.Services.Kafka.MaxBytes,
-	}
-	kafkaReader := kafkaGo.NewReader(conf)
-
-	kafkaCollector, err := kafka.CreateKafkaCollector(sugar)
+	kafkaConsumer, err := kafka.CreateKafkaConsumer(logger, config.Kafka.Brokers, config.Kafka.Topic)
 	if err != nil {
-		sugar.Errorw("Error creating kafka collector",
+		logger.Errorw("Error creating kafka consumer",
 			"error", err,
 		)
 	}
-	kafkaManager, err := kafka.CreateKafkaManager(sugar, scanChan, kafkaReader, kafkaCollector)
+	eventsManager, err := events.CreateEventsManager(logger, scanChan, kafkaConsumer, eventsCollector)
 	if err != nil {
-		sugar.Errorw("Error creating kafka manager",
+		logger.Errorw("Error creating events manager",
 			"error", err,
 		)
 	}
 
-	scanCollector, err := scanner.CreateScanCollector(sugar)
+	clamAV, err := clamav.CreateClamAV(logger)
+	objectScanner, err := scanner.CreateObjectScanner(logger, objectStore, []scanner.Antivirus{clamAV}, auditLogger, scanCollector, config.ClamAV.RemoveAfterScan, config.ClamAV.DatetimeFormat, config.ClamAV.Path)
+	dispatcher, err := dispatcher.CreateDispatcher(logger, []dispatcher.Scanner{objectScanner}, scanChan)
 	if err != nil {
-		sugar.Errorw("Error creating scan collector",
-			"error", err,
-		)
-	}
-	clamAV, err := scanner.CreateClamAV(sugar, objectStore, scanCollector)
-	if err != nil {
-		sugar.Errorw("Error creating clamAV scanner",
-			"error", err,
-		)
-	}
-
-	dispatcher, err := dispatcher.CreateDispatcher(sugar, []dispatcher.Scanner{clamAV}, scanChan)
-	if err != nil {
-		sugar.Errorw("Error creating antivirus manager",
+		logger.Errorw("Error creating dispatcher",
 			"error", err,
 		)
 	}
 
 	// sync.WaitGroup() as part of termination
-	go kafkaManager.StartKafkaManager()
-	go dispatcher.StartDispatcher()
-	go metricManager.StartMetricManager()
+	go eventsManager.Start()
+	go dispatcher.Start()
+	go metrics.Start()
 
 	sigchan := make(chan os.Signal)
 	signal.Notify(sigchan, os.Interrupt)
 	<-sigchan // Wait until interrupt
-	sugar.Infoln("Shutting down Aegis")
+	logger.Infoln("Shutting down Aegis")
 	// Cleanup stuff ...
-	kafkaManager.StopKafkaManager()
-	dispatcher.StopDispatcher()
+	eventsManager.Stop()
+	dispatcher.Stop()
+	metrics.Stop()
 	// Only stop when all scans finished?
 	// Send signals to kafka and scan maanger to stop
 	// sync.waitgroup to wait for all scans to finish
