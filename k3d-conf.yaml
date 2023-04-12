@@ -1,0 +1,14 @@
+apiVersion: k3d.io/v1alpha4
+kind: Simple
+metadata:
+  name: aegis
+# Creates a local Docker regsitry (as a Docker container) that our K3S cluster
+# can pull images from.
+#
+# Set your `imagePullPolicy` to `Always` to automatically pull new images
+# during development if you prefer.
+registries:
+  create:
+    name: registry.localhost
+    host: "0.0.0.0"
+    hostPort: "12345"

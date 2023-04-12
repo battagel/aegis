@@ -1,4 +1,6 @@
 GO := go
+MOCKERY := mockery
+HELM := helm
 
 NAME := aegis
 CMD_DIR := $(CURDIR)/cmd
@@ -32,4 +34,13 @@ test:
 
 .PHONY: mock
 mock:
-	mockery --dir ./internal -r --all --config .mockery.yaml
+	@$(MOCKERY) --dir ./internal -r --all --config .mockery.yaml
+
+
+.PHONY: helm-preview
+helm-preview:
+	@$(HELM) template aegis helm -f ./helm/values.yaml
+
+.PHONY: helm-install
+helm-install:
+	@$(HELM) install aegis helm -f ./helm/values.yaml
