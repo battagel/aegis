@@ -6,52 +6,32 @@ import (
 	"github.com/spf13/viper"
 )
 
-type LoggerConfig struct {
-	Level    string `mapstructure:"level"`
-	Encoding string `mapstructure:"encoding"`
-}
-
-type MinioConfig struct {
-	Endpoint  string `mapstructure:"endpoint"`
-	AccessKey string `mapstructure:"access_key"`
-	SecretKey string `mapstructure:"secret_key"`
-	UseSSL    bool   `mapstructure:"use_ssl"`
-}
-
-type KafkaConfig struct {
-	Brokers  []string `mapstructure:"brokers"`
-	Topic    string   `mapstructure:"topic"`
-	GroupID  string   `mapstructure:"group_id"`
-	MaxBytes int      `mapstructure:"max_bytes"`
-}
-
-type ClamAVConfig struct {
-	RemoveAfterScan bool   `mapstructure:"remove_after_scan"`
-	DatetimeFormat  string `mapstructure:"datetime_format"`
-	Path            string `mapstructure:"path"`
-	Perms           int    `mapstructure:"perms"`
-}
-
-type PrometheusConfig struct {
-	Endpoint string `mapstructure:"endpoint"`
-	Path     string `mapstructure:"path"`
-}
-
-type PostgresConfig struct {
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	Endpoint string `mapstructure:"endpoint"`
-	Database string `mapstructure:"database"`
-	Table    string `mapstructure:"table"`
-}
-
 type Config struct {
-	Logger     LoggerConfig     `mapstructure:"logger"`
-	Minio      MinioConfig      `mapstructure:"minio"`
-	Kafka      KafkaConfig      `mapstructure:"kafka"`
-	ClamAV     ClamAVConfig     `mapstructure:"clamav"`
-	Prometheus PrometheusConfig `mapstructure:"prometheus"`
-	Postgres   PostgresConfig   `mapstructure:"postgres"`
+	LoggerLevel    string `mapstructure:"LOGGER_LEVEL"`
+	LoggerEncoding string `mapstructure:"LOGGER_ENCODING"`
+
+	MinioEndpoint  string `mapstructure:"MINIO_ENDPOINT"`
+	MinioAccessKey string `mapstructure:"MINIO_ACCESS_KEY"`
+	MinioSecretKey string `mapstructure:"MINIO_SECRET_KEY"`
+	MinioUseSSL    bool   `mapstructure:"MINIO_USE_SSL"`
+
+	KafkaBrokers  []string `mapstructure:"KAFKA_BROKERS"`
+	KafkaTopic    string   `mapstructure:"KAFKA_TOPIC"`
+	KafkaGroupID  string   `mapstructure:"KAFKA_GROUP_ID"`
+	KafkaMaxBytes int      `mapstructure:"KAFKA_MAX_BYTES"`
+
+	ClamAVRemoveAfterScan bool   `mapstructure:"CLAMAV_REMOVE_AFTER_SCAN"`
+	ClamAVDateTimeFormat  string `mapstructure:"CLAMAV_DATETIME_FORMAT"`
+	ClamAVPath            string `mapstructure:"CLAMAV_PATH"`
+
+	PrometheusEndpoint string `mapstructure:"PROMETHEUS_ENDPOINT"`
+	PrometheusPath     string `mapstructure:"PROMETHEUS_PATH"`
+
+	PostgresUsername string `mapstructure:"POSTGRES_USERNAME"`
+	PostgresPassword string `mapstructure:"POSTGRES_PASSWORD"`
+	PostgresEndpoint string `mapstructure:"POSTGRES_ENDPOINT"`
+	PostgresDatabase string `mapstructure:"POSTGRES_DATABASE"`
+	PostgresTable    string `mapstructure:"POSTGRES_TABLE"`
 }
 
 var vp *viper.Viper
@@ -61,7 +41,7 @@ func GetConfig() (*Config, error) {
 	var config Config
 
 	vp.SetConfigName("config")
-	vp.SetConfigType("yaml")
+	vp.SetConfigType("env")
 	vp.AddConfigPath(".")
 
 	err := vp.ReadInConfig()
@@ -70,11 +50,13 @@ func GetConfig() (*Config, error) {
 		return &Config{}, err
 	}
 
+	// Read in environment variables
+	vp.AutomaticEnv()
+
 	err = vp.Unmarshal(&config)
 	if err != nil {
 		fmt.Println("Unable to decode into struct: ", err)
 		return &Config{}, err
 	}
-
 	return &config, nil
 }
