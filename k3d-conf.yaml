@@ -12,3 +12,7 @@ registries:
     name: registry.localhost
     host: "0.0.0.0"
     hostPort: "12345"
+ports:
+  - port: 9001:80
+    nodeFilters:
+      - loadbalancer

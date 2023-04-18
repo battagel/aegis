@@ -1,15 +1,15 @@
 dependencies:
 - name: minio
-  repository: https://helm.min.io/
-  version: 8.0.10
+  repository: https://charts.bitnami.com/bitnami
+  version: 12.2.5
 - name: kafka
   repository: https://charts.bitnami.com/bitnami
   version: 21.4.4
 - name: postgresql
   repository: https://charts.bitnami.com/bitnami
-  version: 12.2.7
+  version: 12.2.8
 - name: prometheus
   repository: https://prometheus-community.github.io/helm-charts
   version: 20.2.0
-digest: sha256:7a56d8d2ab7c0e1d34797716e9bc8b27c0001eafbc57b4b681b2c63a2692fcf2
-generated: "2023-04-12T15:46:32.313686+01:00"
+digest: sha256:e47eef8c6d901363dfb6d6d681c5dc9128f7605617ee8bbd66a630e42a943094
+generated: "2023-04-17T16:32:39.23475+01:00"

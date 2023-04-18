@@ -41,18 +41,6 @@ func CreatePostgresDB(logger logger.Logger, user, password, endpoint string, dat
 	}, pool.Close, nil
 }
 
-func (p *PostgresDB) CreateDatabase() error {
-	// Not needed?
-	_, err := p.pool.Exec(context.Background(), "CREATE DATABASE IF NOT EXISTS aegis_antivirus")
-	if err != nil {
-		p.logger.Errorw("Error creating database",
-			"error", err,
-		)
-		return err
-	}
-	return nil
-}
-
 func (p *PostgresDB) CreateTable(tableName string) error {
 	query := fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS %s (

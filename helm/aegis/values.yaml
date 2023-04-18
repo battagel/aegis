@@ -49,6 +49,24 @@ env:
   PROMETHEUS_PATH: /metrics
   POSTGRES_ENDPOINT: aegis-postgresql.default.svc.cluster.local:5432
 
+minio:
+  auth:
+    rootUser: minioadmin
+    rootPassword: minioadmin
+
+postgresql:
+  auth:
+    enablePostgresUser: true
+    postgresPassword: postgres
+    database: aegis_antivirus
+
+kafka:
+  auth:
+    clientProtocol: plaintext
+  provisioning:
+    topics:
+      - test-topic
+
 ingress:
   enabled: false
   className: ""

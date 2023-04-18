@@ -36,6 +36,10 @@ spec:
           env:
             - name: MINIO_ENDPOINT
               value: {{ .Values.env.MINIO_ENDPOINT }}
+            - name: MINIO_ACCESS_KEY
+              value: {{ .Values.minio.auth.rootUser }}
+            - name: MINIO_SECRET_KEY
+              value: {{ .Values.minio.auth.rootPasword }}
             - name: KAFKA_BROKERS
               value: {{ .Values.env.KAFKA_BROKERS }}
             - name: PROMETHEUS_ENDPOINT
@@ -44,18 +48,12 @@ spec:
               value: {{ .Values.env.PROMETHEUS_PATH }}
             - name: POSTGRES_ENDPOINT
               value: {{ .Values.env.POSTGRES_ENDPOINT }}
+            - name: POSTGRES_DATABASE
+              value: {{ .Values.postgresql.auth.database }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

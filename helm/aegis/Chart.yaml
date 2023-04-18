@@ -4,21 +4,25 @@ description: A integrated Antvirus service for MinIO
 
 dependencies:
   - name: minio
-    version: 8.0.10
-    repository: https://helm.min.io/
+    version: 12.2.5
+    repository: https://charts.bitnami.com/bitnami
     condition: minio.enabled
   - name: kafka
     version: 21.4.4
     repository: https://charts.bitnami.com/bitnami
     condition: kafka.enabled
   - name: postgresql
-    version: 12.2.7
+    version: 12.2.8
     repository: https://charts.bitnami.com/bitnami
     condition: postgresql.enabled
   - name: prometheus
     version: 20.2.0
     repository: https://prometheus-community.github.io/helm-charts
     condition: prometheus.enabled
+  # - name: clamav
+  #   version: 2.7.0
+  #   repository: https://wiremind.github.io/wiremind-helm-charts
+  #   condition: clamav.enabled
 
 # A chart can be either an 'application' or a 'library' chart.
 #

@@ -1,10 +1,14 @@
 GO := go
 MOCKERY := mockery
 HELM := helm
+K3D := k3d
+KUBECTL := kubectl
 
 NAME := aegis
+VER := 1.0.0
 CMD_DIR := $(CURDIR)/cmd
 BIN_DIR := $(CURDIR)/bin
+HELM_DIR := $(CURDIR)/helm
 MAIN_LOCATION := $(CMD_DIR)/$(NAME)/main.go
 
 ## help: Print this message
@@ -36,11 +40,20 @@ test:
 mock:
 	@$(MOCKERY) --dir ./internal -r --all --config .mockery.yaml
 
+.PHONY: create-cluster
+create-cluster:
+	@$(K3D) cluster create --config k3d-conf.yaml
+	@$(K3D) image import $(NAME):$(VER) -c $(NAME)
+	@$(HELM) dependency update "$(HELM_DIR)/$(NAME)"
+	@$(HELM) install $(NAME) "$(HELM_DIR)/$(NAME)"
+	@$(KUBECTL) get pods
 
-.PHONY: helm-preview
-helm-preview:
-	@$(HELM) template aegis helm -f ./helm/values.yaml
+.PHONY: delete-cluster
+delete-cluster:
+	@$(K3D) cluster delete $(NAME)
+	@$(HELM) uninstall $(NAME)
 
-.PHONY: helm-install
-helm-install:
-	@$(HELM) install aegis helm -f ./helm/values.yaml
+.PHONY: cluster-ports
+cluster-ports:
+	@$(KUBECTL) port-forward svc/aegis-minio 9000:9000
+	@$(KUBECTL) port-forward svc/aegis-postgresql 5432:5432
