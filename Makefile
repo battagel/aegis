@@ -33,18 +33,22 @@ vendor:
 	@$(GO) mod tidy
 	@$(GO) mod vendor
 
+## test: Run the tests
 .PHONY: test
 test:
 	@$(GO) test -v ./... --cover
 
+## mock: Generate the mocks for testing
 .PHONY: mock
 mock:
 	@$(MOCKERY) --dir ./internal -r --all --config .mockery.yaml
 
+## docker-build: Build the docker image
 .PHONY: docker-build
 docker-build:
 	@$(DOCKER) build . -t $(NAME):$(VER)
 
+## create-cluster: Create the k3d cluster
 .PHONY: create-cluster
 create-cluster:
 	@$(K3D) cluster create --config k3d-conf.yaml
@@ -53,10 +57,12 @@ create-cluster:
 	@$(HELM) install $(NAME) "$(HELM_DIR)/$(NAME)"
 	@$(KUBECTL) get pods
 
+## delete-cluster: Delete the k3d cluster
 .PHONY: delete-cluster
 delete-cluster:
 	@$(K3D) cluster delete $(NAME)
 	@$(HELM) uninstall $(NAME)
 
+## rebuild-cluster: Delete and recreate the cluster
 .PHONY: rebuild-cluster
 rebuild-cluster: delete-cluster docker-build create-cluster
