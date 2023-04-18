@@ -11,5 +11,8 @@ dependencies:
 - name: prometheus
   repository: https://prometheus-community.github.io/helm-charts
   version: 20.2.0
-digest: sha256:e47eef8c6d901363dfb6d6d681c5dc9128f7605617ee8bbd66a630e42a943094
-generated: "2023-04-17T16:32:39.23475+01:00"
+- name: clamav
+  repository: https://charts.truecharts.org/
+  version: 5.0.16
+digest: sha256:696e89d1231b8e31b87a79748e18b05ae6cf18a9dfc3e6373b6472ef749a6388
+generated: "2023-04-18T11:31:20.139484+01:00"

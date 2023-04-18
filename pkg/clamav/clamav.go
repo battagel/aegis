@@ -18,8 +18,11 @@ func CreateClamAV(logger logger.Logger) (*ClamAVScanner, error) {
 func (c *ClamAVScanner) ScanFile(filePath string) (bool, error) {
 	// Returns false if file is clean, true if infected
 	// If there are any errors then return true (infected)
-	cmd := exec.Command("clamdscan", filePath, "--stream", "-m")
-	err := cmd.Run()
+	cmd := exec.Command("clamdscan", filePath, "--config=clamd.conf")
+	output, err := cmd.Output()
+	c.logger.Debugw("clamdscan output",
+		"output", string(output),
+	)
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			// Exit code 1 means infected

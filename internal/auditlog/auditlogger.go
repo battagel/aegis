@@ -5,7 +5,6 @@ import (
 )
 
 type Database interface {
-	CreateDatabase(string) error
 	CreateTable(string) error
 	Insert(string, string, string, string, string, string) error
 }

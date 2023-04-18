@@ -3,9 +3,10 @@ MOCKERY := mockery
 HELM := helm
 K3D := k3d
 KUBECTL := kubectl
+DOCKER := docker
 
 NAME := aegis
-VER := 1.0.0
+VER := latest
 CMD_DIR := $(CURDIR)/cmd
 BIN_DIR := $(CURDIR)/bin
 HELM_DIR := $(CURDIR)/helm
@@ -40,6 +41,10 @@ test:
 mock:
 	@$(MOCKERY) --dir ./internal -r --all --config .mockery.yaml
 
+.PHONY: docker-build
+docker-build:
+	@$(DOCKER) build . -t $(NAME):$(VER)
+
 .PHONY: create-cluster
 create-cluster:
 	@$(K3D) cluster create --config k3d-conf.yaml
@@ -53,7 +58,5 @@ delete-cluster:
 	@$(K3D) cluster delete $(NAME)
 	@$(HELM) uninstall $(NAME)
 
-.PHONY: cluster-ports
-cluster-ports:
-	@$(KUBECTL) port-forward svc/aegis-minio 9000:9000
-	@$(KUBECTL) port-forward svc/aegis-postgresql 5432:5432
+.PHONY: rebuild-cluster
+rebuild-cluster: delete-cluster docker-build create-cluster
