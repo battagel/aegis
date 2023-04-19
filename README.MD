@@ -45,7 +45,7 @@ Make sure dependencies are installed and configured correctly.
 From within project root you can use the make command to launch the kubernetes environment created by k3d.
 
 ```console
-make rebuild-cluster
+make docker-build && make create-cluster
 ```
 
 Using kubectl you can verify that all pods and services have started correctly.

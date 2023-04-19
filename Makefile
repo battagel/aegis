@@ -19,7 +19,7 @@ help:
 
 ## build: Create the binary
 .PHONY: build
-build:
+build: vendor
 	@$(GO) build -o $(BIN_DIR)/$(NAME) -mod=vendor $(MAIN_LOCATION)
 
 ## run: Run the binary
@@ -60,8 +60,8 @@ create-cluster:
 ## delete-cluster: Delete the k3d cluster
 .PHONY: delete-cluster
 delete-cluster:
-	@$(K3D) cluster delete $(NAME)
-	@$(HELM) uninstall $(NAME)
+	-@$(K3D) cluster delete $(NAME)
+	-@$(HELM) uninstall $(NAME)
 
 ## rebuild-cluster: Delete and recreate the cluster
 .PHONY: rebuild-cluster
