@@ -23,13 +23,41 @@ Dependencies:
 - Postgresql
 - Grafana (optional)
 
-Launch dependency processes and configure the environment variables in the `config.env` file.
+Launch all dependency processes using the config files provided in
+`./local-configs`. The configs need to be matched in the `config.env` file.
+
+MinIO:
+
+```console
+minio server <path_to_data>
+```
+
+Kafka:
+
+```console
+kafka-topics.sh --create --topic <topic_name> --bootstrap-server localhost:9092
+```
+
+Prometheus
+
+```console
+prometheus --config.file=./local-configs/prometheus.yml
+```
+
+Postgresql
+
+```console
+pg_ctl -D <postgresql_location> start
+```
+
+Finally, start the Aegis service.
 
 ```console
 make build && make run
 ```
 
-Thats it! Navigate to [http://localhost:9000](http://localhost:9000) to view interact with MinIO.
+Thats it! Navigate to [http://localhost:9000](http://localhost:9000) to view
+interact with MinIO. Checkout the [usage](#usage) section for how to configure the MinIO client.
 
 ### Kubernetes Environment
 
@@ -55,7 +83,8 @@ kubectl get pods
 kubectl get svc
 ```
 
-Navigate to [http://localhost:9001](http://localhost:9001) to view interact with MinIO.
+Navigate to [http://localhost:9001](http://localhost:9001) to view interact with
+MinIO. Checkout the [usage](#usage) section for how to configure the MinIO client.
 
 Default credentials:
 user: minioadmin
@@ -138,3 +167,7 @@ This should be all the setup you need to utilise Aegis in your object storage st
 ### Grafana
 
 Prometheus metrics are exposed to [http://localhost:9090](http://localhost:9090). These can be consumed in Grafana to visualise the data.
+
+### ClamAV
+
+When starting the deployment within kubernetes the clamav will start and request a signature database update. Sometimes this update can trigger too many times causing a request cooldown. This will cause errors with object scanning but can be solved by simply waiting for this cooldown to expire.

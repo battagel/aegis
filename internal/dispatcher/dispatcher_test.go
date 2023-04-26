@@ -2,56 +2,67 @@ package dispatcher
 
 import (
 	"aegis/internal/object"
-	"aegis/mocks"
-	"fmt"
+	"aegis/pkg/logger"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
+	"github.com/stretchr/testify/mock"
 )
 
-type CommonTestItems struct {
-	Sugar *zap.SugaredLogger
+// MockScanner is a mock implementation of the Scanner interface
+type MockScanner struct {
+	mock.Mock
 }
 
-func ProvideCommonTestItems(t *testing.T) *CommonTestItems {
-	t.Helper()
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		fmt.Printf("Error creating logger: %s", err)
-	}
-	defer logger.Sync()
-	sugar := logger.Sugar()
-	return &CommonTestItems{Sugar: sugar}
+// ScanObject is a mocked method for ScanObject in Scanner interface
+func (m *MockScanner) ScanObject(obj *object.Object) error {
+	args := m.Called(obj)
+	return args.Error(0)
 }
 
-func TestDispatcher(t *testing.T) {
-	commonTestItems := ProvideCommonTestItems(t)
-	scanChan := make(chan *object.Object)
-	mockScanner := new(mocks.Scanner)
+func TestDispatcher_Start(t *testing.T) {
+	// Create a logger
+	logger, err := logger.CreateZapLogger("debug", "console")
+	assert.NoError(t, err, "Error creating logger")
 
-	testObjectGood := object.Object{
-		ObjectKey:  "good.txt",
-		BucketName: "test-bucket",
-		CachePath:  "/cache",
-	}
+	// Create mock scanners
+	mockScanner1 := new(MockScanner)
+	mockScanner2 := new(MockScanner)
 
-	testObjectBad := object.Object{
-		ObjectKey:  "bad.txt",
-		BucketName: "test-bucket",
-		CachePath:  "/cache",
-	}
+	// Create a dispatcher with mock scanners
+	dispatcher, err := CreateDispatcher(logger, []Scanner{mockScanner1, mockScanner2}, make(chan *object.Object))
+	assert.NoError(t, err, "Expected no error")
 
-	mockScanner.On("ScanObject", testObjectGood).Return(false)
-	mockScanner.On("ScanObject", testObjectBad).Return(true)
+	// Expect that ScanObject will be called on both scanners with the same object
+	obj := &object.Object{}
+	mockScanner1.On("ScanObject", obj).Return(nil)
+	mockScanner2.On("ScanObject", obj).Return(nil)
 
-	dispatcher, err := CreateDispatcher(commonTestItems.Sugar, []Scanner{mockScanner}, scanChan)
-	assert.NoError(t, err)
+	// Start the dispatcher
+	err = dispatcher.Start()
+	assert.NoError(t, err, "Expected no error")
 
-	go dispatcher.StartDispatcher()
+	// Assert that ScanObject was called on both scanners
+	mockScanner1.AssertExpectations(t)
+	mockScanner2.AssertExpectations(t)
+}
 
-	// Send stuff to get scanned
-	scanChan <- &testObjectGood
-	scanChan <- &testObjectBad
-	dispatcher.StopDispatcher()
+func TestDispatcher_Stop(t *testing.T) {
+	// Create a logger
+	logger, err := logger.CreateZapLogger("debug", "console")
+	assert.NoError(t, err, "Error creating logger")
+
+	// Create mock scanners
+	mockScanner1 := new(MockScanner)
+	mockScanner2 := new(MockScanner)
+
+	// Create a dispatcher with mock scanners
+	dispatcher, err := CreateDispatcher(logger, []Scanner{mockScanner1, mockScanner2}, make(chan *object.Object))
+	assert.NoError(t, err, "Expected no error")
+
+	// Call Stop on the dispatcher
+	err = dispatcher.Stop()
+
+	// Assert that Stop returned no error
+	assert.NoError(t, err, "Expected no error")
 }

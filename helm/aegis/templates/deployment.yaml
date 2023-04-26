@@ -42,6 +42,8 @@ spec:
               value: {{ .Values.minio.auth.rootPasword }}
             - name: KAFKA_BROKERS
               value: {{ .Values.env.KAFKA_BROKERS }}
+            - name: KAFKA_TOPIC
+              value: {{ (first .Values.kafka.provisioning.topics)}}
             - name: PROMETHEUS_ENDPOINT
               value: {{ .Values.env.PROMETHEUS_ENDPOINT }}
             - name: PROMETHEUS_PATH

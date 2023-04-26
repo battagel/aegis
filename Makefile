@@ -2,6 +2,7 @@ GO := go
 MOCKERY := mockery
 HELM := helm
 K3D := k3d
+K3D_CONF := k3d-conf.yaml
 KUBECTL := kubectl
 DOCKER := docker
 
@@ -51,7 +52,7 @@ docker-build:
 ## create-cluster: Create the k3d cluster
 .PHONY: create-cluster
 create-cluster:
-	@$(K3D) cluster create --config k3d-conf.yaml
+	@$(K3D) cluster create --config $(K3D_CONF)
 	@$(K3D) image import $(NAME):$(VER) -c $(NAME)
 	@$(HELM) dependency update "$(HELM_DIR)/$(NAME)"
 	@$(HELM) install $(NAME) "$(HELM_DIR)/$(NAME)"

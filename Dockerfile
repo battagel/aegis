@@ -5,7 +5,6 @@ WORKDIR /build
 ADD go.mod go.sum Makefile config.env ./
 ADD ./internal ./internal
 ADD ./pkg ./pkg
-ADD ./vendor ./vendor
 ADD ./cmd ./cmd
 ADD ./clamd.conf ./clamd.conf
 

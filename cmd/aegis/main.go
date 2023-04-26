@@ -25,10 +25,12 @@ func run() int {
 	config, err := config.GetConfig()
 	if err != nil {
 		fmt.Println("Error getting config", err)
+		return 0
 	}
 	logger, err := logger.CreateZapLogger(config.LoggerLevel, config.LoggerEncoding)
 	if err != nil {
 		fmt.Println("Error creating logger", err)
+		return 0
 	}
 
 	scanChan := make(chan *object.Object)
@@ -44,24 +46,28 @@ func run() int {
 		logger.Errorw("Error creating metric collectors",
 			"error", err,
 		)
+		return 0
 	}
 	objectStoreCollector, err := objectstore.CreateObjectStoreCollector(logger)
 	if err != nil {
 		logger.Errorw("Error creating object store collector",
 			"error", err,
 		)
+		return 0
 	}
 	eventsCollector, err := events.CreateKafkaCollector(logger)
 	if err != nil {
 		logger.Errorw("Error creating kafka collector",
 			"error", err,
 		)
+		return 0
 	}
 	scanCollector, err := scanner.CreateScanCollector(logger)
 	if err != nil {
 		logger.Errorw("Error creating collectors",
 			"error", err,
 		)
+		return 0
 	}
 
 	postgresDB, dbClose, err := postgres.CreatePostgresDB(logger, config.PostgresUsername, config.PostgresPassword, config.PostgresEndpoint, config.PostgresDatabase)
@@ -69,6 +75,7 @@ func run() int {
 		logger.Errorw("Error creating postgres database",
 			"error", err,
 		)
+		return 0
 	}
 	defer dbClose()
 	auditLogger, err := auditlog.CreateAuditLogger(logger, postgresDB, config.PostgresTable)
@@ -78,12 +85,14 @@ func run() int {
 		logger.Errorw("Error creating minio client",
 			"error", err,
 		)
+		return 0
 	}
 	objectStore, err := objectstore.CreateObjectStore(logger, minioStore, objectStoreCollector)
 	if err != nil {
 		logger.Errorw("Error creating object store",
 			"error", err,
 		)
+		return 0
 	}
 
 	kafkaConsumer, err := kafka.CreateKafkaConsumer(logger, config.KafkaBrokers, config.KafkaTopic)
@@ -91,12 +100,14 @@ func run() int {
 		logger.Errorw("Error creating kafka consumer",
 			"error", err,
 		)
+		return 0
 	}
 	eventsManager, err := events.CreateEventsManager(logger, scanChan, kafkaConsumer, eventsCollector)
 	if err != nil {
 		logger.Errorw("Error creating events manager",
 			"error", err,
 		)
+		return 0
 	}
 
 	clamAV, err := clamav.CreateClamAV(logger)
@@ -106,6 +117,7 @@ func run() int {
 		logger.Errorw("Error creating dispatcher",
 			"error", err,
 		)
+		return 0
 	}
 
 	// sync.WaitGroup() as part of termination

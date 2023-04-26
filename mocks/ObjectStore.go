@@ -9,13 +9,13 @@ type ObjectStore struct {
 	mock.Mock
 }
 
-// AddObjectTagging provides a mock function with given fields: bucketName, objectKey, newTags
-func (_m *ObjectStore) AddObjectTagging(bucketName string, objectKey string, newTags map[string]string) error {
-	ret := _m.Called(bucketName, objectKey, newTags)
+// AddObjectTagging provides a mock function with given fields: _a0, _a1, _a2
+func (_m *ObjectStore) AddObjectTagging(_a0 string, _a1 string, _a2 map[string]string) error {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, map[string]string) error); ok {
-		r0 = rf(bucketName, objectKey, newTags)
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -23,17 +23,17 @@ func (_m *ObjectStore) AddObjectTagging(bucketName string, objectKey string, new
 	return r0
 }
 
-// GetObject provides a mock function with given fields: bucketName, objectKey
-func (_m *ObjectStore) GetObject(bucketName string, objectKey string) ([]byte, error) {
-	ret := _m.Called(bucketName, objectKey)
+// GetObject provides a mock function with given fields: _a0, _a1
+func (_m *ObjectStore) GetObject(_a0 string, _a1 string) ([]byte, error) {
+	ret := _m.Called(_a0, _a1)
 
 	var r0 []byte
 	var r1 error
 	if rf, ok := ret.Get(0).(func(string, string) ([]byte, error)); ok {
-		return rf(bucketName, objectKey)
+		return rf(_a0, _a1)
 	}
 	if rf, ok := ret.Get(0).(func(string, string) []byte); ok {
-		r0 = rf(bucketName, objectKey)
+		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]byte)
@@ -41,7 +41,7 @@ func (_m *ObjectStore) GetObject(bucketName string, objectKey string) ([]byte, e
 	}
 
 	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(bucketName, objectKey)
+		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)
 	}

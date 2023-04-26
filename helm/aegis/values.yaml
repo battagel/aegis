@@ -65,7 +65,7 @@ kafka:
     clientProtocol: plaintext
   provisioning:
     topics:
-      - test-topic
+      - minio-put-events
 
 clamav:
   service:
