@@ -13,7 +13,7 @@ This service manages the scanning of new files uploaded to MinIO. It is connecte
 
 ### Local Environment
 
-Dependencies:
+External dependencies that need to be pre-installed:
 
 - Go
 - MinIO
@@ -23,8 +23,9 @@ Dependencies:
 - Postgresql
 - Grafana (optional)
 
-Launch all dependency processes using the config files provided in
-`./local-configs`. The configs need to be matched in the `config.env` file.
+Once installed, start the external dependencies. This can be done using the
+commands below. Prometheus requires a config file to be passed in shown below.
+Any changes to the following commands may require changes to the config.env.
 
 MinIO:
 
@@ -35,7 +36,7 @@ minio server <path_to_data>
 Kafka:
 
 ```console
-kafka-topics.sh --create --topic <topic_name> --bootstrap-server localhost:9092
+kafka-topics.sh --create --topic minio-put-event --bootstrap-server localhost:9092
 ```
 
 Prometheus
@@ -61,7 +62,7 @@ interact with MinIO. Checkout the [usage](#usage) section for how to configure t
 
 ### Kubernetes Environment
 
-Dependencies:
+External dependencies that need to be pre-installed:
 
 - k3d
 - Helm
@@ -117,7 +118,7 @@ MINIO_SECRET_KEY=minioadmin
 MINIO_USE_SSL=false
 
 KAFKA_BROKERS="127.0.0.1:9092"
-KAFKA_TOPIC=test-topic
+KAFKA_TOPIC=minio-put-event
 KAFKA_GROUP_ID=g1
 KAFKA_MAX_BYTES=10
 
