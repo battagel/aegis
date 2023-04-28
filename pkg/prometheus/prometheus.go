@@ -36,7 +36,7 @@ func CreatePrometheusServer(logger logger.Logger, endpoint, path string) (*Prome
 	}, nil
 }
 
-func (p *Prometheus) Start() error {
+func (p *Prometheus) Start(errChan chan error) error {
 	p.logger.Debugw("Exposing metrics at",
 		"endpoint", p.httpServer.Addr,
 		// TODO fix this error. Not finding path
@@ -49,6 +49,7 @@ func (p *Prometheus) Start() error {
 		p.logger.Errorw("Error starting prometheus server",
 			"error", err,
 		)
+		errChan <- err
 		return err
 	}
 	return nil

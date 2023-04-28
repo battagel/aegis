@@ -1,8 +1,6 @@
 package logger
 
 import (
-	"fmt"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -16,8 +14,6 @@ func CreateZapLogger(logLevel, encoding string) (Logger, error) {
 	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
 		return nil, err
 	}
-
-	fmt.Println("Encoding: ", encoding)
 
 	zapConfig := zap.Config{
 		Level:            zap.NewAtomicLevelAt(level),

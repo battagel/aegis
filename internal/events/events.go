@@ -31,7 +31,7 @@ func CreateEventsManager(logger logger.Logger, scanChan chan *object.Object, kaf
 	}, nil
 }
 
-func (k *EventsManager) Start() (*EventsManager, error) {
+func (k *EventsManager) Start(errChan chan error) (*EventsManager, error) {
 	k.logger.Debugln("Listening for activity on Kafka...")
 	for {
 		bucketName, objectKey, err := k.kafka.ReadMessage()
@@ -39,6 +39,7 @@ func (k *EventsManager) Start() (*EventsManager, error) {
 			k.logger.Errorw("Error decoding message",
 				"error", err,
 			)
+			errChan <- err
 			return nil, err
 		}
 		if bucketName != "" && objectKey != "" {
@@ -48,6 +49,7 @@ func (k *EventsManager) Start() (*EventsManager, error) {
 				k.logger.Errorw("Error creating object",
 					"error", err,
 				)
+				errChan <- err
 				return nil, err
 			}
 			k.scanChan <- request
