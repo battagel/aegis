@@ -4,8 +4,9 @@ import (
 	"fmt"
 )
 
-func PrintSplash() {
-	fmt.Println(`
+func PrintSplash(encoding string) {
+	if encoding == "console" {
+		fmt.Println(`
      _              _
     / \   ___  __ _(_)___
    / _ \ / _ \/ _` + "`" + ` | / __|
@@ -21,4 +22,5 @@ func PrintSplash() {
 ----------------------------------------------
  Created by Matthew Battagel
 `)
+	}
 }
