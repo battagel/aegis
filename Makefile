@@ -56,7 +56,7 @@ create-cluster:
 	@$(K3D) image import $(NAME):$(VER) -c $(NAME)
 	@$(HELM) dependency update "$(HELM_DIR)/$(NAME)"
 	@$(HELM) install $(NAME) "$(HELM_DIR)/$(NAME)"
-	@$(KUBECTL) get pods
+	@$(KUBECTL) get pods -w
 
 ## delete-cluster: Delete the k3d cluster
 .PHONY: delete-cluster

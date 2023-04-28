@@ -18,7 +18,7 @@ External dependencies that need to be pre-installed:
 - Go
 - MinIO
 - Prometheus
-- Kafka
+- Kafka and Zookeeper
 - Clamav
 - Postgresql
 - Grafana (optional)
@@ -36,7 +36,9 @@ minio server <path_to_data>
 Kafka:
 
 ```console
-kafka-topics.sh --create --topic minio-put-event --bootstrap-server localhost:9092
+zookeeper-server-start ./local-configs/zoo.cfg
+kafka-server-start ./local-configs/kafka.properties
+kafka-topics --create --topic minio-put-events --bootstrap-server localhost:9092
 ```
 
 Prometheus
