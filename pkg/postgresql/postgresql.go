@@ -49,7 +49,8 @@ func (p *PostgresqlDB) CreateTable(tableName string) error {
 			BucketName TEXT NOT NULL,
 			Result TEXT NOT NULL,
 			Antivirus TEXT NOT NULL,
-			Timestamp TIMESTAMP NOT NULL
+			Timestamp TIMESTAMP NOT NULL,
+			VirusType TEXT
 		);`, tableName)
 	_, err := p.pool.Exec(context.Background(), query)
 	if err != nil {
@@ -64,9 +65,9 @@ func (p *PostgresqlDB) CreateTable(tableName string) error {
 	return nil
 }
 
-func (p *PostgresqlDB) Insert(tableName, bucketName, objectKey, result, antivirus, timestamp string) error {
-	query := fmt.Sprintf("INSERT INTO %s (ObjectKey, BucketName, Result, Antivirus, Timestamp) VALUES ($1, $2, $3, $4, $5)", tableName)
-	_, err := p.pool.Exec(context.Background(), query, objectKey, bucketName, result, antivirus, timestamp)
+func (p *PostgresqlDB) Insert(tableName, bucketName, objectKey, result, antivirus, timestamp, virusType string) error {
+	query := fmt.Sprintf("INSERT INTO %s (ObjectKey, BucketName, Result, Antivirus, Timestamp, VirusType) VALUES ($1, $2, $3, $4, $5, $6)", tableName)
+	_, err := p.pool.Exec(context.Background(), query, objectKey, bucketName, result, antivirus, timestamp, virusType)
 	if err != nil {
 		p.logger.Errorw("Error inserting into table",
 			"error", err,

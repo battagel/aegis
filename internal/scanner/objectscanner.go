@@ -12,12 +12,12 @@ type ObjectStore interface {
 }
 
 type Antivirus interface {
-	ScanFile(filePath string) (bool, error)
+	ScanFile(filePath string) (bool, string, error)
 	GetName() string
 }
 
 type AuditLogger interface {
-	Log(string, string, string, string, string)
+	Log(string, string, string, string, string, string)
 }
 
 type ScanCollector interface {
@@ -67,7 +67,7 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 			"objectKey", object.ObjectKey,
 			"error", err,
 		)
-		s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_getting_object", "", scanTime)
+		s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_getting_object", "", scanTime, "")
 		s.scanCollector.ScanError()
 		return err
 	}
@@ -95,7 +95,7 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 	overallResult := false
 	for _, antivirus := range s.antiviruses {
 		scanStart := time.Now()
-		result, err := antivirus.ScanFile(object.Path)
+		result, virusType, err := antivirus.ScanFile(object.Path)
 		scanElapsed := float64(time.Since(scanStart) / time.Millisecond)
 		s.scanCollector.ScanTime(scanElapsed)
 		if err != nil {
@@ -105,24 +105,24 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 				"objectKey", object.ObjectKey,
 				"error", err,
 			)
-			s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_scanning_file", antivirus.GetName(), scanTime)
+			s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_scanning_file", antivirus.GetName(), scanTime, "")
 			s.scanCollector.ScanError()
 			return err
 		}
 		s.scanCollector.FileScanned()
 		if result {
 			overallResult = true
-			s.auditLogger.Log(object.BucketName, object.ObjectKey, "infected", antivirus.GetName(), scanTime)
+			s.auditLogger.Log(object.BucketName, object.ObjectKey, "infected", antivirus.GetName(), scanTime, virusType)
 		} else {
-			s.auditLogger.Log(object.BucketName, object.ObjectKey, "clean", antivirus.GetName(), scanTime)
+			s.auditLogger.Log(object.BucketName, object.ObjectKey, "clean", antivirus.GetName(), scanTime, "")
 		}
 	}
 	if overallResult {
-		s.scanCollector.InfectedFile()
 		s.logger.Warnw("Infected file",
 			"bucketName", object.BucketName,
 			"objectKey", object.ObjectKey,
 		)
+		s.scanCollector.InfectedFile()
 		newTags := map[string]string{"antivirus": "infected", "antivirus-last-scanned": scanTime}
 		err := s.objectStore.AddObjectTagging(object.BucketName, object.ObjectKey, newTags)
 		if err != nil {
@@ -131,7 +131,7 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 				"objectKey", object.ObjectKey,
 				"error", err,
 			)
-			s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_adding_tags", "", scanTime)
+			s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_adding_tags", "", scanTime, "")
 			s.scanCollector.ScanError()
 			return err
 		}
@@ -149,7 +149,7 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 				"objectKey", object.ObjectKey,
 				"error", err,
 			)
-			s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_adding_tags", "", scanTime)
+			s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_adding_tags", "", scanTime, "")
 			s.scanCollector.ScanError()
 			return err
 		}
@@ -162,7 +162,8 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 				"objectKey", object.ObjectKey,
 				"error", err,
 			)
-			s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_removing_file_from_cache", "", scanTime)
+
+			s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_removing_file_from_cache", "", scanTime, "")
 			s.scanCollector.ScanError()
 			return err
 		}

@@ -3,6 +3,8 @@ package clamav
 import (
 	"aegis/pkg/logger"
 	"os/exec"
+	"regexp"
+	"strings"
 )
 
 type ClamAVScanner struct {
@@ -15,11 +17,11 @@ func CreateClamAV(logger logger.Logger) (*ClamAVScanner, error) {
 	}, nil
 }
 
-func (c *ClamAVScanner) ScanFile(filePath string) (bool, error) {
+func (c *ClamAVScanner) ScanFile(filePath string) (bool, string, error) {
 	// Returns false if file is clean, true if infected
 	// If there are any errors then return true (infected)
-	cmd := exec.Command("clamdscan", filePath, "--config=clamd.conf")
-	output, err := cmd.Output()
+	clamCmd := exec.Command("clamdscan", filePath, "--config=clamd.conf")
+	output, err := clamCmd.Output()
 	c.logger.Debugw("clamdscan output",
 		"output", string(output),
 	)
@@ -27,16 +29,26 @@ func (c *ClamAVScanner) ScanFile(filePath string) (bool, error) {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			// Exit code 1 means infected
 			if exitError.ExitCode() == 1 {
-				return true, nil
+				virusType := c.findVirusType(string(output))
+				return true, virusType, nil
 			}
 		}
 		c.logger.Errorw("Error running clamdscan. Is clamd running?",
 			"error", err,
 		)
-		return true, err
+		return true, "", err
 	}
 	// Due to exit codes, the file must be ok
-	return false, nil
+	return false, "", nil
+}
+
+func (c *ClamAVScanner) findVirusType(output string) string {
+	re := regexp.MustCompile(`(\w+.\w+.\w+-\w+-\w+\w+-\w+) FOUND`)
+	virusType := strings.TrimSuffix(re.FindString(output), " FOUND")
+	c.logger.Debugw("clamdscan output",
+		"virusType", virusType,
+	)
+	return virusType
 }
 
 func (c *ClamAVScanner) GetName() string {

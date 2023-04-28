@@ -41,6 +41,13 @@ kafka-server-start ./local-configs/kafka.properties
 kafka-topics --create --topic minio-put-events --bootstrap-server localhost:9092
 ```
 
+ClamAV
+Change ./clamd.conf to use localhost
+
+```console
+clamd
+```
+
 Prometheus
 
 ```console
