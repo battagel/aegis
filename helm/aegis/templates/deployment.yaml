@@ -48,10 +48,10 @@ spec:
               value: {{ .Values.env.PROMETHEUS_ENDPOINT }}
             - name: PROMETHEUS_PATH
               value: {{ .Values.env.PROMETHEUS_PATH }}
-            - name: POSTGRES_ENDPOINT
-              value: {{ .Values.env.POSTGRES_ENDPOINT }}
-            - name: POSTGRES_DATABASE
-              value: {{ .Values.postgresql.auth.database }}
+            - name: POSTGRESQL_ENDPOINT
+              value: {{ .Values.env.POSTGRESQL_ENDPOINT }}
+            - name: POSTGRESQL_DATABASE
+              value: {{ .Values.postgresqlql.auth.database }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

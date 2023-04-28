@@ -27,11 +27,11 @@ type Config struct {
 	PrometheusEndpoint string `mapstructure:"PROMETHEUS_ENDPOINT"`
 	PrometheusPath     string `mapstructure:"PROMETHEUS_PATH"`
 
-	PostgresUsername string `mapstructure:"POSTGRES_USERNAME"`
-	PostgresPassword string `mapstructure:"POSTGRES_PASSWORD"`
-	PostgresEndpoint string `mapstructure:"POSTGRES_ENDPOINT"`
-	PostgresDatabase string `mapstructure:"POSTGRES_DATABASE"`
-	PostgresTable    string `mapstructure:"POSTGRES_TABLE"`
+	PostgresqlUsername string `mapstructure:"POSTGRESQL_USERNAME"`
+	PostgresqlPassword string `mapstructure:"POSTGRESQL_PASSWORD"`
+	PostgresqlEndpoint string `mapstructure:"POSTGRESQL_ENDPOINT"`
+	PostgresqlDatabase string `mapstructure:"POSTGRESQL_DATABASE"`
+	PostgresqlTable    string `mapstructure:"POSTGRESQL_TABLE"`
 }
 
 var vp *viper.Viper

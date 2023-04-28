@@ -13,7 +13,7 @@ import (
 	"aegis/pkg/kafka"
 	"aegis/pkg/logger"
 	"aegis/pkg/minio"
-	"aegis/pkg/postgres"
+	"aegis/pkg/postgresql"
 	"aegis/pkg/prometheus"
 	"fmt"
 	"os"
@@ -21,12 +21,12 @@ import (
 )
 
 func run() int {
-	cli.PrintSplash()
 	config, err := config.GetConfig()
 	if err != nil {
 		fmt.Println("Error getting config", err)
 		return 1
 	}
+	cli.PrintSplash(config.LoggerEncoding)
 	logger, err := logger.CreateZapLogger(config.LoggerLevel, config.LoggerEncoding)
 	if err != nil {
 		fmt.Println("Error creating logger", err)
@@ -70,15 +70,15 @@ func run() int {
 		return 1
 	}
 
-	postgresDB, dbClose, err := postgres.CreatePostgresDB(logger, config.PostgresUsername, config.PostgresPassword, config.PostgresEndpoint, config.PostgresDatabase)
+	postgresqlDB, dbClose, err := postgresql.CreatePostgresqlDB(logger, config.PostgresqlUsername, config.PostgresqlPassword, config.PostgresqlEndpoint, config.PostgresqlDatabase)
 	if err != nil {
-		logger.Errorw("Error creating postgres database",
+		logger.Errorw("Error creating postgresql database",
 			"error", err,
 		)
 		return 1
 	}
 	defer dbClose()
-	auditLogger, err := auditlog.CreateAuditLogger(logger, postgresDB, config.PostgresTable)
+	auditLogger, err := auditlog.CreateAuditLogger(logger, postgresqlDB, config.PostgresqlTable)
 	if err != nil {
 		logger.Errorw("Error creating audit logger",
 			"error", err,

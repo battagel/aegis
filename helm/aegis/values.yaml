@@ -47,7 +47,7 @@ env:
   KAFKA_BROKERS: "aegis-kafka.default.svc.cluster.local:9092"
   PROMETHEUS_ENDPOINT: 0.0.0.0:9090
   PROMETHEUS_PATH: /metrics
-  POSTGRES_ENDPOINT: aegis-postgresql.default.svc.cluster.local:5432
+  POSTGRESQL_ENDPOINT: aegis-postgresql.default.svc.cluster.local:5432
 
 minio:
   auth:

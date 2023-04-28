@@ -1,4 +1,4 @@
-package postgres
+package postgresql
 
 import (
 	"aegis/pkg/logger"
@@ -10,22 +10,22 @@ import (
 
 type CloseFunc func()
 
-type PostgresDB struct {
+type PostgresqlDB struct {
 	logger logger.Logger
 	pool   *pgxpool.Pool
 }
 
-func CreatePostgresDB(logger logger.Logger, user, password, endpoint string, database string) (*PostgresDB, CloseFunc, error) {
-	logger.Debugw("Connecting to Postgresql DB",
+func CreatePostgresqlDB(logger logger.Logger, user, password, endpoint string, database string) (*PostgresqlDB, CloseFunc, error) {
+	logger.Debugw("Connecting to Postgresqlql DB",
 		"database", database,
 	)
 	connectionUrl := fmt.Sprintf(
-		"postgres://%v:%v@%v/%v?sslmode=disable",
+		"postgresql://%v:%v@%v/%v?sslmode=disable",
 		user, password, endpoint, database,
 	)
 	pool, err := pgxpool.New(context.Background(), connectionUrl)
 	if err != nil {
-		logger.Errorw("Error connecting to Postgres DB",
+		logger.Errorw("Error connecting to Postgresql DB",
 			"user", user,
 			"password", password,
 			"endpoint", endpoint,
@@ -35,13 +35,13 @@ func CreatePostgresDB(logger logger.Logger, user, password, endpoint string, dat
 		return nil, nil, err
 	}
 
-	return &PostgresDB{
+	return &PostgresqlDB{
 		logger: logger,
 		pool:   pool,
 	}, pool.Close, nil
 }
 
-func (p *PostgresDB) CreateTable(tableName string) error {
+func (p *PostgresqlDB) CreateTable(tableName string) error {
 	query := fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS %s (
 			ID SERIAL PRIMARY KEY,
@@ -64,7 +64,7 @@ func (p *PostgresDB) CreateTable(tableName string) error {
 	return nil
 }
 
-func (p *PostgresDB) Insert(tableName, bucketName, objectKey, result, antivirus, timestamp string) error {
+func (p *PostgresqlDB) Insert(tableName, bucketName, objectKey, result, antivirus, timestamp string) error {
 	query := fmt.Sprintf("INSERT INTO %s (ObjectKey, BucketName, Result, Antivirus, Timestamp) VALUES ($1, $2, $3, $4, $5)", tableName)
 	_, err := p.pool.Exec(context.Background(), query, objectKey, bucketName, result, antivirus, timestamp)
 	if err != nil {

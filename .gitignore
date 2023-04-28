@@ -3,3 +3,5 @@
 /vendor/
 /helm/aegis/charts/
 /examples/
+/data/
+/mocks/*.go
