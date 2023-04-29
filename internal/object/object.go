@@ -18,7 +18,8 @@ type Object struct {
 }
 
 const (
-	perms = fs.FileMode(0644)
+	// Permissions of the cache and subsequent paths
+	perms = fs.FileMode(0777)
 )
 
 func CreateObject(logger logger.Logger, bucketName string, objectKey string) (*Object, error) {

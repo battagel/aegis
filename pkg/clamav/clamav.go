@@ -45,7 +45,7 @@ func (c *ClamAVScanner) ScanFile(filePath string) (bool, string, error) {
 func (c *ClamAVScanner) findVirusType(output string) string {
 	re := regexp.MustCompile(`(\w+.\w+.\w+-\w+-\w+\w+-\w+) FOUND`)
 	virusType := strings.TrimSuffix(re.FindString(output), " FOUND")
-	c.logger.Debugw("clamdscan output",
+	c.logger.Debugw("virus type output",
 		"virusType", virusType,
 	)
 	return virusType

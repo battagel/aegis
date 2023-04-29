@@ -22,16 +22,13 @@ type Prometheus struct {
 
 func CreatePrometheusServer(logger logger.Logger, endpoint, path string) (*Prometheus, error) {
 	logger.Debugln("Creating Prometheus Server")
-	mux := http.NewServeMux()
-	mux.Handle(path, promhttp.Handler())
-	// TODO Add https support
 	return &Prometheus{
 		logger: logger,
 		httpServer: &http.Server{
 			Addr:         endpoint,
 			ReadTimeout:  readTimeoutInSeconds * time.Second,
 			WriteTimeout: writeTimeoutInSeconds * time.Second,
-			Handler:      mux,
+			Handler:      promhttp.Handler(),
 		},
 	}, nil
 }
@@ -39,11 +36,8 @@ func CreatePrometheusServer(logger logger.Logger, endpoint, path string) (*Prome
 func (p *Prometheus) Start(errChan chan error) error {
 	p.logger.Debugw("Exposing metrics at",
 		"endpoint", p.httpServer.Addr,
-		// TODO fix this error. Not finding path
-		"path", p.httpServer.Handler,
 	)
 
-	// TODO: Add graceful shutdown this returns error when stopped
 	err := p.httpServer.ListenAndServe()
 	if err != nil {
 		if err == http.ErrServerClosed {
