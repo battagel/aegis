@@ -109,7 +109,7 @@ func run() int {
 		return 1
 	}
 
-	kafkaConsumer, err := kafka.CreateKafkaConsumer(logger, config.KafkaBrokers, config.KafkaTopic, config.KafkaGroupID, config.KafkaMaxBytes, config.KafkaBackoff, config.KafkaMaxReties)
+	kafkaConsumer, err := kafka.CreateKafkaConsumer(logger, config.KafkaBrokers, config.KafkaTopic, config.KafkaGroupID, config.KafkaMaxBytes)
 	if err != nil {
 		logger.Errorw("Error creating kafka consumer",
 			"error", err,

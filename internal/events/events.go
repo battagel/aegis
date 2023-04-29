@@ -18,6 +18,7 @@ type EventsManager struct {
 	logger          logger.Logger
 	kafka           Kafka
 	scanChan        chan *object.Object
+	stopChan        chan struct{}
 	eventsCollector EventsCollector
 }
 
@@ -27,6 +28,7 @@ func CreateEventsManager(logger logger.Logger, scanChan chan *object.Object, kaf
 		logger:          logger,
 		kafka:           kafka,
 		scanChan:        scanChan,
+		stopChan:        make(chan struct{}),
 		eventsCollector: eventsCollector,
 	}, nil
 }
@@ -34,31 +36,38 @@ func CreateEventsManager(logger logger.Logger, scanChan chan *object.Object, kaf
 func (k *EventsManager) Start(errChan chan error) (*EventsManager, error) {
 	k.logger.Debugln("Listening for activity on Kafka...")
 	for {
-		bucketName, objectKey, err := k.kafka.ReadMessage()
-		if err != nil {
-			k.logger.Errorw("Error decoding message",
-				"error", err,
-			)
-			errChan <- err
-			return nil, err
-		}
-		if bucketName != "" && objectKey != "" {
-			k.eventsCollector.MessageReceived()
-			request, err := object.CreateObject(k.logger, bucketName, objectKey)
+		select {
+		case <-k.stopChan:
+			k.logger.Debugln("Kafka consumer stopped")
+			return nil, nil
+		default:
+			bucketName, objectKey, err := k.kafka.ReadMessage()
 			if err != nil {
-				k.logger.Errorw("Error creating object",
+				k.logger.Errorw("Error decoding message",
 					"error", err,
 				)
 				errChan <- err
 				return nil, err
 			}
-			k.scanChan <- request
+			if bucketName != "" && objectKey != "" {
+				k.eventsCollector.MessageReceived()
+				request, err := object.CreateObject(k.logger, bucketName, objectKey)
+				if err != nil {
+					k.logger.Errorw("Error creating object",
+						"error", err,
+					)
+					errChan <- err
+					return nil, err
+				}
+				k.scanChan <- request
+			}
 		}
 	}
 }
 
 func (k *EventsManager) Stop() error {
 	k.logger.Debugln("Stopping Kafka Consumer")
+	close(k.stopChan)
 	err := k.kafka.Close()
 	return err
 }

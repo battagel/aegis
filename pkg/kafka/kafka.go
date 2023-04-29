@@ -9,17 +9,12 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-const (
-	groupID  = "g1"
-	maxBytes = 10
-)
-
 type KafkaConsumer struct {
 	logger      logger.Logger
 	kafkaReader *kafka.Reader
 }
 
-func CreateKafkaConsumer(logger logger.Logger, brokers []string, topic string) (*KafkaConsumer, error) {
+func CreateKafkaConsumer(logger logger.Logger, brokers []string, topic string, groupID string, maxBytes int) (*KafkaConsumer, error) {
 	logger.Debugw("Creating Kafka Consumer",
 		"brokers", brokers,
 		"topic", topic,
@@ -41,6 +36,10 @@ func (k *KafkaConsumer) ReadMessage() (string, string, error) {
 	k.logger.Debugw("Reading message from Kafka")
 	message, err := k.kafkaReader.ReadMessage(context.Background())
 	if err != nil {
+		if err.Error() == "EOF" {
+			k.logger.Debugw("EOF error received from Kafka")
+			return "", "", nil
+		}
 		k.logger.Errorw("Error reading message from Kafka",
 			"error", err,
 		)
