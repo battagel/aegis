@@ -5,6 +5,7 @@ import (
 	"aegis/internal/cli"
 	"aegis/internal/dispatcher"
 	"aegis/internal/events"
+	"aegis/internal/metrics"
 	"aegis/internal/object"
 	"aegis/internal/objectstore"
 	"aegis/internal/scanner"
@@ -41,7 +42,14 @@ func run() int {
 		"config", config,
 	)
 	logger.Debugln("Creating metric collectors")
-	metrics, err := prometheus.CreatePrometheusServer(logger, config.PrometheusEndpoint, config.PrometheusPath)
+	prometheus, err := prometheus.CreatePrometheusServer(logger, config.PrometheusEndpoint, config.PrometheusPath)
+	if err != nil {
+		logger.Errorw("Error creating prometheus server",
+			"error", err,
+		)
+		return 1
+	}
+	metrics, err := metrics.CreateMetricsManager(logger, prometheus)
 	if err != nil {
 		logger.Errorw("Error creating metric collectors",
 			"error", err,
@@ -101,7 +109,7 @@ func run() int {
 		return 1
 	}
 
-	kafkaConsumer, err := kafka.CreateKafkaConsumer(logger, config.KafkaBrokers, config.KafkaTopic)
+	kafkaConsumer, err := kafka.CreateKafkaConsumer(logger, config.KafkaBrokers, config.KafkaTopic, config.KafkaGroupID, config.KafkaMaxBytes, config.KafkaBackoff, config.KafkaMaxReties)
 	if err != nil {
 		logger.Errorw("Error creating kafka consumer",
 			"error", err,

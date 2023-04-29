@@ -21,7 +21,7 @@ type Prometheus struct {
 }
 
 func CreatePrometheusServer(logger logger.Logger, endpoint, path string) (*Prometheus, error) {
-	logger.Debugln("Creating Metric Server")
+	logger.Debugln("Creating Prometheus Server")
 	mux := http.NewServeMux()
 	mux.Handle(path, promhttp.Handler())
 	// TODO Add https support
@@ -46,11 +46,15 @@ func (p *Prometheus) Start(errChan chan error) error {
 	// TODO: Add graceful shutdown this returns error when stopped
 	err := p.httpServer.ListenAndServe()
 	if err != nil {
-		p.logger.Errorw("Error starting prometheus server",
-			"error", err,
-		)
-		errChan <- err
-		return err
+		if err == http.ErrServerClosed {
+			p.logger.Debugln("Prometheus server closed, exiting")
+		} else {
+			p.logger.Errorw("Error starting prometheus server",
+				"error", err,
+			)
+			errChan <- err
+			return err
+		}
 	}
 	return nil
 }
