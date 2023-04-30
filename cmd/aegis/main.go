@@ -42,7 +42,7 @@ func run() int {
 		"config", config,
 	)
 	logger.Debugln("Creating metric collectors")
-	prometheus, err := prometheus.CreatePrometheusServer(logger, config.PrometheusEndpoint, config.PrometheusPath)
+	prometheus, err := prometheus.CreatePrometheusExporter(logger, config.PrometheusEndpoint, config.PrometheusPath)
 	if err != nil {
 		logger.Errorw("Error creating prometheus server",
 			"error", err,

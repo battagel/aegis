@@ -20,7 +20,7 @@ type Prometheus struct {
 	httpServer *http.Server
 }
 
-func CreatePrometheusServer(logger logger.Logger, endpoint, path string) (*Prometheus, error) {
+func CreatePrometheusExporter(logger logger.Logger, endpoint, path string) (*Prometheus, error) {
 	logger.Debugln("Creating Prometheus Server")
 	return &Prometheus{
 		logger: logger,
@@ -33,7 +33,7 @@ func CreatePrometheusServer(logger logger.Logger, endpoint, path string) (*Prome
 	}, nil
 }
 
-func (p *Prometheus) Start(errChan chan error) error {
+func (p *Prometheus) Start() error {
 	p.logger.Debugw("Exposing metrics at",
 		"endpoint", p.httpServer.Addr,
 	)
@@ -46,7 +46,6 @@ func (p *Prometheus) Start(errChan chan error) error {
 			p.logger.Errorw("Error starting prometheus server",
 				"error", err,
 			)
-			errChan <- err
 			return err
 		}
 	}
