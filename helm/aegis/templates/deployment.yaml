@@ -51,7 +51,7 @@ spec:
             - name: POSTGRESQL_ENDPOINT
               value: {{ .Values.env.POSTGRESQL_ENDPOINT }}
             - name: POSTGRESQL_DATABASE
-              value: {{ .Values.postgresqlql.auth.database }}
+              value: {{ .Values.postgresql.auth.database }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

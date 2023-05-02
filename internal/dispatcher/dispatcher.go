@@ -29,7 +29,7 @@ func (d *Dispatcher) Start() error {
 	for {
 		request := <-d.scanChan
 		for _, scanner := range d.scanners {
-			// Pass by reference??
+			// TODO Pass by reference??
 			go scanner.ScanObject(request)
 		}
 	}

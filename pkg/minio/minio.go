@@ -2,6 +2,7 @@ package minio
 
 import (
 	"aegis/pkg/logger"
+	"bytes"
 	"context"
 	"io"
 
@@ -50,6 +51,28 @@ func (m *Minio) GetObject(bucketName string, objectName string) ([]byte, error) 
 		return nil, err
 	}
 	return data, nil
+}
+
+func (m *Minio) PutObject(bucketName string, objectName string, data []byte) error {
+	_, err := m.minioClient.PutObject(context.Background(), bucketName, objectName, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{})
+	if err != nil {
+		m.logger.Errorw("Error putting object",
+			"error", err,
+		)
+		return err
+	}
+	return nil
+}
+
+func (m *Minio) RemoveObject(bucketName string, objectName string) error {
+	err := m.minioClient.RemoveObject(context.Background(), bucketName, objectName, minio.RemoveObjectOptions{})
+	if err != nil {
+		m.logger.Errorw("Error removing object",
+			"error", err,
+		)
+		return err
+	}
+	return nil
 }
 
 func (m *Minio) GetObjectTagging(bucketName string, objectName string) (map[string]string, error) {

@@ -7,8 +7,11 @@ import (
 )
 
 type Config struct {
-	LoggerLevel    string `mapstructure:"LOGGER_LEVEL"`
-	LoggerEncoding string `mapstructure:"LOGGER_ENCODING"`
+	LoggerLevel      string `mapstructure:"AEGIS_LOGGER_LEVEL"`
+	LoggerEncoding   string `mapstructure:"AEGIS_LOGGER_ENCODING"`
+	RemoveAfterScan  string `mapstructure:"AEGIS_REMOVE_AFTER_SCAN"`
+	CleanupPolicy    string `mapstructure:"AEGIS_CLEANUP_POLICY"`
+	QuarantineBucket string `mapstructure:"AEGIS_QUARANTINE_BUCKET"`
 
 	MinioEndpoint  string `mapstructure:"MINIO_ENDPOINT"`
 	MinioAccessKey string `mapstructure:"MINIO_ACCESS_KEY"`

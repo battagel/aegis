@@ -2,6 +2,7 @@ package main
 
 import (
 	"aegis/internal/auditlog"
+	"aegis/internal/cleaner"
 	"aegis/internal/cli"
 	"aegis/internal/dispatcher"
 	"aegis/internal/events"
@@ -22,6 +23,7 @@ import (
 )
 
 func run() int {
+	// ### Initialisation and Configuration ###
 	config, err := config.GetConfig()
 	if err != nil {
 		fmt.Println("Error getting config", err)
@@ -41,7 +43,7 @@ func run() int {
 	logger.Infow("Config",
 		"config", config,
 	)
-	logger.Debugln("Creating metric collectors")
+	logger.Debugln("Creating metric manager and collectors")
 	prometheus, err := prometheus.CreatePrometheusExporter(logger, config.PrometheusEndpoint, config.PrometheusPath)
 	if err != nil {
 		logger.Errorw("Error creating prometheus server",
@@ -72,12 +74,20 @@ func run() int {
 	}
 	scanCollector, err := scanner.CreateScanCollector(logger)
 	if err != nil {
-		logger.Errorw("Error creating collectors",
+		logger.Errorw("Error creating scan collectors",
+			"error", err,
+		)
+		return 1
+	}
+	cleanerCollector, err := cleaner.CreateCleanerCollector(logger)
+	if err != nil {
+		logger.Errorw("Error creating cleaner collectors",
 			"error", err,
 		)
 		return 1
 	}
 
+	logger.Debugln("Creating audit logger")
 	postgresqlDB, dbClose, err := postgresql.CreatePostgresqlDB(logger, config.PostgresqlUsername, config.PostgresqlPassword, config.PostgresqlEndpoint, config.PostgresqlDatabase)
 	if err != nil {
 		logger.Errorw("Error creating postgresql database",
@@ -94,6 +104,7 @@ func run() int {
 		return 1
 	}
 
+	logger.Debugln("Creating object store")
 	minioStore, err := minio.CreateMinio(logger, config.MinioEndpoint, config.MinioAccessKey, config.MinioSecretKey, config.MinioUseSSL)
 	if err != nil {
 		logger.Errorw("Error creating minio client",
@@ -109,6 +120,7 @@ func run() int {
 		return 1
 	}
 
+	logger.Debugln("Creating events system")
 	kafkaConsumer, err := kafka.CreateKafkaConsumer(logger, config.KafkaBrokers, config.KafkaTopic, config.KafkaGroupID, config.KafkaMaxBytes)
 	if err != nil {
 		logger.Errorw("Error creating kafka consumer",
@@ -124,8 +136,22 @@ func run() int {
 		return 1
 	}
 
+	logger.Debugln("Creating scanning workflow")
 	clamAV, err := clamav.CreateClamAV(logger)
-	objectScanner, err := scanner.CreateObjectScanner(logger, objectStore, []scanner.Antivirus{clamAV}, auditLogger, scanCollector, config.ClamAVRemoveAfterScan, config.ClamAVDateTimeFormat, config.ClamAVPath)
+	if err != nil {
+		logger.Errorw("Error creating clamav",
+			"error", err,
+		)
+		return 1
+	}
+	cleaner, err := cleaner.CreateCleaner(logger, objectStore, config.CleanupPolicy, config.QuarantineBucket, cleanerCollector, auditLogger)
+	objectScanner, err := scanner.CreateObjectScanner(logger, objectStore, []scanner.Antivirus{clamAV}, cleaner, auditLogger, scanCollector, config.ClamAVRemoveAfterScan, config.ClamAVDateTimeFormat, config.ClamAVPath)
+	if err != nil {
+		logger.Errorw("Error creating object scanner",
+			"error", err,
+		)
+		return 1
+	}
 	dispatcher, err := dispatcher.CreateDispatcher(logger, []dispatcher.Scanner{objectScanner}, scanChan)
 	if err != nil {
 		logger.Errorw("Error creating dispatcher",
@@ -134,6 +160,7 @@ func run() int {
 		return 1
 	}
 
+	// ### Main Loop ###
 	errChan := make(chan error)
 	go eventsManager.Start(errChan)
 	go dispatcher.Start()

@@ -2,6 +2,7 @@ package object
 
 import (
 	"aegis/pkg/logger"
+	"errors"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -14,7 +15,7 @@ type Object struct {
 	BucketName string
 	Perms      fs.FileMode
 	Path       string
-	// Byte stream? Will that avoid saving to file?
+	// TODO Byte stream? Will that avoid saving to file?
 }
 
 const (
@@ -23,7 +24,6 @@ const (
 )
 
 func CreateObject(logger logger.Logger, bucketName string, objectKey string) (*Object, error) {
-	// Make sure cache dir exists??
 	return &Object{
 		logger:     logger,
 		ObjectKey:  objectKey,
@@ -34,6 +34,12 @@ func CreateObject(logger logger.Logger, bucketName string, objectKey string) (*O
 
 func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
 	// Check if the parent directory of the file exists, and create it if it doesn't exist
+	if o.Path == "" {
+		o.logger.Errorw("Cache path is empty",
+			"cachePath", o.Path,
+		)
+		return errors.New("Cache path is empty")
+	}
 	destDir := filepath.Dir(o.Path)
 	if _, err := os.Stat(destDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(destDir, o.Perms); err != nil {

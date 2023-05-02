@@ -5,7 +5,7 @@ import (
 )
 
 type Prometheus interface {
-	Start(chan error) error
+	Start() error
 	Stop() error
 }
 

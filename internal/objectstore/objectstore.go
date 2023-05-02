@@ -6,12 +6,16 @@ import (
 
 type ObjectStoreCollector interface {
 	GetObject()
+	PutObject()
+	RemoveObject()
 	GetObjectTagging()
 	PutObjectTagging()
 }
 
 type Minio interface {
 	GetObject(string, string) ([]byte, error)
+	PutObject(string, string, []byte) error
+	RemoveObject(string, string) error
 	GetObjectTagging(string, string) (map[string]string, error)
 	PutObjectTagging(string, string, map[string]string) error
 	AddObjectTagging(string, string, map[string]string) error
@@ -33,7 +37,7 @@ func (o *ObjectStore) GetObject(bucketName, objectKey string) ([]byte, error) {
 	if err != nil {
 		o.logger.Errorw("Error getting object from minio",
 			"bucketName", bucketName,
-			"objectName", objectKey,
+			"objectKey", objectKey,
 			"error", err,
 		)
 		return nil, err
@@ -42,12 +46,73 @@ func (o *ObjectStore) GetObject(bucketName, objectKey string) ([]byte, error) {
 	return object, nil
 }
 
+func (o *ObjectStore) PutObject(bucketName, objectKey string, object []byte) error {
+	err := o.minio.PutObject(bucketName, objectKey, object)
+	if err != nil {
+		o.logger.Errorw("Error putting object to minio",
+			"bucketName", bucketName,
+			"objectKey", objectKey,
+			"error", err,
+		)
+		return err
+	}
+	o.objectStoreCollector.PutObject()
+	return nil
+}
+
+func (o *ObjectStore) RemoveObject(bucketName, objectKey string) error {
+	err := o.minio.RemoveObject(bucketName, objectKey)
+	if err != nil {
+		o.logger.Errorw("Error removing object from minio",
+			"bucketName", bucketName,
+			"objectKey", objectKey,
+			"error", err,
+		)
+		return err
+	}
+	o.objectStoreCollector.RemoveObject()
+	return nil
+}
+
+func (o *ObjectStore) MoveObject(bucketName, objectKey, newBucketName, newObjectKey string) error {
+	object, err := o.minio.GetObject(bucketName, objectKey)
+	if err != nil {
+		o.logger.Errorw("Error getting object from minio",
+			"bucketName", bucketName,
+			"objectKey", objectKey,
+			"error", err,
+		)
+		return err
+	}
+	err = o.minio.PutObject(newBucketName, newObjectKey, object)
+	if err != nil {
+		o.logger.Errorw("Error putting object to minio",
+			"bucketName", newBucketName,
+			"objectKey", newObjectKey,
+			"error", err,
+		)
+		return err
+	}
+	err = o.minio.RemoveObject(bucketName, objectKey)
+	if err != nil {
+		o.logger.Errorw("Error removing object from minio",
+			"bucketName", bucketName,
+			"objectKey", objectKey,
+			"error", err,
+		)
+		return err
+	}
+	o.objectStoreCollector.RemoveObject()
+	o.objectStoreCollector.PutObject()
+	return nil
+}
+
 func (o *ObjectStore) GetObjectTagging(bucketName, objectKey string) (map[string]string, error) {
 	tags, err := o.minio.GetObjectTagging(bucketName, objectKey)
 	if err != nil {
 		o.logger.Errorw("Error getting object tagging from minio",
 			"bucketName", bucketName,
-			"objectName", objectKey,
+			"objectKey", objectKey,
 			"error", err,
 		)
 		return nil, err
@@ -61,7 +126,7 @@ func (o *ObjectStore) PutObjectTagging(bucketName, objectKey string, tags map[st
 	if err != nil {
 		o.logger.Errorw("Error putting object tagging to minio",
 			"bucketName", bucketName,
-			"objectName", objectKey,
+			"objectKey", objectKey,
 			"tags", tags,
 			"error", err,
 		)
@@ -76,7 +141,7 @@ func (o *ObjectStore) AddObjectTagging(bucketName, objectKey string, tags map[st
 	if err != nil {
 		o.logger.Errorw("Error adding object tagging to minio",
 			"bucketName", bucketName,
-			"objectName", objectKey,
+			"objectKey", objectKey,
 			"tags", tags,
 			"error", err,
 		)

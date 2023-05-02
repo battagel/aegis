@@ -16,7 +16,7 @@ type PostgresqlDB struct {
 }
 
 func CreatePostgresqlDB(logger logger.Logger, user, password, endpoint string, database string) (*PostgresqlDB, CloseFunc, error) {
-	logger.Debugw("Connecting to Postgresqlql DB",
+	logger.Debugw("Connecting to Postgresql DB",
 		"database", database,
 	)
 	connectionUrl := fmt.Sprintf(
