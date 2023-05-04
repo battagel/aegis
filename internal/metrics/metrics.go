@@ -22,10 +22,9 @@ func CreateMetricsManager(logger logger.Logger, prometheus Prometheus) (*Metrics
 	}, nil
 }
 
-func (m *MetricsManager) Start(errChan chan error) {
+func (m *MetricsManager) Start() error {
 	m.logger.Debugln("Starting Metrics Manager")
-	err := m.prometheus.Start()
-	errChan <- err
+	return m.prometheus.Start()
 }
 
 func (m *MetricsManager) Stop() error {

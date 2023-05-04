@@ -3,6 +3,7 @@ package events
 import (
 	"aegis/internal/object"
 	"aegis/pkg/logger"
+	"context"
 )
 
 type EventsCollector interface {
@@ -10,7 +11,7 @@ type EventsCollector interface {
 }
 
 type Kafka interface {
-	ReadMessage() (string, string, error)
+	ReadMessage(context.Context) (string, string, error)
 	Close() error
 }
 
@@ -18,7 +19,6 @@ type EventsManager struct {
 	logger          logger.Logger
 	kafka           Kafka
 	scanChan        chan *object.Object
-	stopChan        chan struct{}
 	eventsCollector EventsCollector
 }
 
@@ -28,26 +28,33 @@ func CreateEventsManager(logger logger.Logger, scanChan chan *object.Object, kaf
 		logger:          logger,
 		kafka:           kafka,
 		scanChan:        scanChan,
-		stopChan:        make(chan struct{}),
 		eventsCollector: eventsCollector,
 	}, nil
 }
 
-func (k *EventsManager) Start(errChan chan error) (*EventsManager, error) {
+func (k *EventsManager) Start(ctx context.Context, errChan chan error) {
 	k.logger.Debugln("Listening for activity on Kafka...")
 	for {
 		select {
-		case <-k.stopChan:
-			k.logger.Debugln("Kafka consumer stopped")
-			return nil, nil
+		case <-ctx.Done():
+			k.logger.Debugln("Stopping Kafka consumer")
+			close(k.scanChan)
+			err := k.kafka.Close()
+			if err != nil {
+				k.logger.Errorw("Error closing kafka consumer",
+					"error", err,
+				)
+				errChan <- err
+			}
+			return
 		default:
-			bucketName, objectKey, err := k.kafka.ReadMessage()
+			bucketName, objectKey, err := k.kafka.ReadMessage(ctx)
 			if err != nil {
 				k.logger.Errorw("Error decoding message",
 					"error", err,
 				)
 				errChan <- err
-				return nil, err
+				continue
 			}
 			if bucketName != "" && objectKey != "" {
 				k.eventsCollector.MessageReceived()
@@ -57,17 +64,10 @@ func (k *EventsManager) Start(errChan chan error) (*EventsManager, error) {
 						"error", err,
 					)
 					errChan <- err
-					return nil, err
+					continue
 				}
 				k.scanChan <- request
 			}
 		}
 	}
-}
-
-func (k *EventsManager) Stop() error {
-	k.logger.Debugln("Stopping Kafka Consumer")
-	close(k.stopChan)
-	err := k.kafka.Close()
-	return err
 }

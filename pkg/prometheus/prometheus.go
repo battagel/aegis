@@ -18,9 +18,10 @@ const (
 type Prometheus struct {
 	logger     logger.Logger
 	httpServer *http.Server
+	ctx        context.Context
 }
 
-func CreatePrometheusExporter(logger logger.Logger, endpoint, path string) (*Prometheus, error) {
+func CreatePrometheusExporter(logger logger.Logger, ctx context.Context, endpoint, path string) (*Prometheus, error) {
 	logger.Debugln("Creating Prometheus Server")
 	return &Prometheus{
 		logger: logger,
@@ -54,10 +55,7 @@ func (p *Prometheus) Start() error {
 
 func (p *Prometheus) Stop() error {
 	p.logger.Debugln("Stopping Metric Server")
-	ctx, cancel := context.WithTimeout(context.Background(), serverTimeoutInSeconds*time.Second)
-	defer cancel()
-
-	if err := p.httpServer.Shutdown(ctx); err != nil {
+	if err := p.httpServer.Shutdown(p.ctx); err != nil {
 		p.logger.Errorw("Error stopping prometheus server",
 			"error", err,
 		)

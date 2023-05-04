@@ -1,17 +1,24 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: minio
+  name: aegis-ingress
   annotations:
     ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   rules:
     - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: aegis-minio
-                port:
-                  name: minio-console
+      paths:
+        - path: /minio
+          pathType: prefix
+          backend:
+            service:
+              name: aegis-minio
+              port:
+                name: minio-console
+        - path: /prometheus
+          pathType: prefix
+          backend:
+            service:
+              name: aegis-prometheus-server
+              port:
+                name: http

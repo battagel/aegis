@@ -32,12 +32,12 @@ func CreateKafkaConsumer(logger logger.Logger, brokers []string, topic string, g
 	}, nil
 }
 
-func (k *KafkaConsumer) ReadMessage() (string, string, error) {
+func (k *KafkaConsumer) ReadMessage(ctx context.Context) (string, string, error) {
 	k.logger.Debugw("Reading message from Kafka")
-	message, err := k.kafkaReader.ReadMessage(context.Background())
+	message, err := k.kafkaReader.ReadMessage(ctx)
 	if err != nil {
-		if err.Error() == "EOF" {
-			k.logger.Debugw("EOF error received from Kafka")
+		if err.Error() == "context canceled" || err.Error() == "EOF" {
+			k.logger.Debugw("Non fatal error related to shutdown")
 			return "", "", nil
 		}
 		k.logger.Errorw("Error reading message from Kafka",
@@ -56,7 +56,7 @@ func (k *KafkaConsumer) ReadMessage() (string, string, error) {
 }
 
 func (k *KafkaConsumer) Close() error {
-	k.logger.Debugw("Closing Kafka Consumer")
+	k.logger.Debugw("Closing Kafka Reader")
 	err := k.kafkaReader.Close()
 	return err
 }

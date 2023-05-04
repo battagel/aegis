@@ -13,9 +13,10 @@ type CloseFunc func()
 type PostgresqlDB struct {
 	logger logger.Logger
 	pool   *pgxpool.Pool
+	ctx    context.Context
 }
 
-func CreatePostgresqlDB(logger logger.Logger, user, password, endpoint string, database string) (*PostgresqlDB, CloseFunc, error) {
+func CreatePostgresqlDB(logger logger.Logger, ctx context.Context, user, password, endpoint string, database string) (*PostgresqlDB, CloseFunc, error) {
 	logger.Debugw("Connecting to Postgresql DB",
 		"database", database,
 	)
@@ -23,7 +24,7 @@ func CreatePostgresqlDB(logger logger.Logger, user, password, endpoint string, d
 		"postgresql://%v:%v@%v/%v?sslmode=disable",
 		user, password, endpoint, database,
 	)
-	pool, err := pgxpool.New(context.Background(), connectionUrl)
+	pool, err := pgxpool.New(ctx, connectionUrl)
 	if err != nil {
 		logger.Errorw("Error connecting to Postgresql DB",
 			"user", user,
@@ -38,6 +39,7 @@ func CreatePostgresqlDB(logger logger.Logger, user, password, endpoint string, d
 	return &PostgresqlDB{
 		logger: logger,
 		pool:   pool,
+		ctx:    ctx,
 	}, pool.Close, nil
 }
 
@@ -52,7 +54,7 @@ func (p *PostgresqlDB) CreateTable(tableName string) error {
 			Timestamp TIMESTAMP NOT NULL,
 			VirusType TEXT
 		);`, tableName)
-	_, err := p.pool.Exec(context.Background(), query)
+	_, err := p.pool.Exec(p.ctx, query)
 	if err != nil {
 		p.logger.Errorw("Error creating table",
 			"error", err,
@@ -67,7 +69,7 @@ func (p *PostgresqlDB) CreateTable(tableName string) error {
 
 func (p *PostgresqlDB) Insert(tableName, bucketName, objectKey, result, antivirus, timestamp, virusType string) error {
 	query := fmt.Sprintf("INSERT INTO %s (ObjectKey, BucketName, Result, Antivirus, Timestamp, VirusType) VALUES ($1, $2, $3, $4, $5, $6)", tableName)
-	_, err := p.pool.Exec(context.Background(), query, objectKey, bucketName, result, antivirus, timestamp, virusType)
+	_, err := p.pool.Exec(p.ctx, query, objectKey, bucketName, result, antivirus, timestamp, virusType)
 	if err != nil {
 		p.logger.Errorw("Error inserting into table",
 			"error", err,

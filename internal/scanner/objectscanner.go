@@ -59,7 +59,7 @@ func CreateObjectScanner(logger logger.Logger, objectStore ObjectStore, antiviru
 	}, nil
 }
 
-func (s *Scanner) ScanObject(object *object.Object) error {
+func (s *Scanner) ScanObject(object *object.Object, errChan chan error) {
 	scanTime := time.Now().Format(s.datetimeFormat)
 	object.SetCachePath(s.cachePath)
 	s.logger.Debugw("Getting object from object store",
@@ -75,7 +75,8 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 		)
 		s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_getting_object", "", scanTime, "")
 		s.scanCollector.ScanError()
-		return err
+		errChan <- err
+		return
 	}
 
 	s.logger.Debugw("Saving byte stream to file",
@@ -90,7 +91,8 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 			"error", err,
 		)
 		s.scanCollector.ScanError()
-		return err
+		errChan <- err
+		return
 	}
 
 	s.logger.Debugw("Scanning file with antiviruses",
@@ -113,7 +115,8 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 			)
 			s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_scanning_file", antivirus.GetName(), scanTime, "")
 			s.scanCollector.ScanError()
-			return err
+			errChan <- err
+			return
 		}
 		s.scanCollector.FileScanned()
 		// Seperate logging for each antivirus
@@ -150,8 +153,9 @@ func (s *Scanner) ScanObject(object *object.Object) error {
 
 			s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_removing_file_from_cache", "", scanTime, "")
 			s.scanCollector.ScanError()
-			return err
+			errChan <- err
+			return
 		}
 	}
-	return nil
+	return
 }

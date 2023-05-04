@@ -3,10 +3,11 @@ package dispatcher
 import (
 	"aegis/internal/object"
 	"aegis/pkg/logger"
+	"sync"
 )
 
 type Scanner interface {
-	ScanObject(*object.Object) error
+	ScanObject(*object.Object, chan error)
 }
 
 type Dispatcher struct {
@@ -24,18 +25,20 @@ func CreateDispatcher(logger logger.Logger, scanners []Scanner, scanChan chan *o
 	}, nil
 }
 
-func (d *Dispatcher) Start() error {
+func (d *Dispatcher) Start(errChan chan error, done chan struct{}) {
 	d.logger.Debugln("Starting dispatcher loop...")
-	for {
-		request := <-d.scanChan
+	var wg sync.WaitGroup
+
+	for request := range d.scanChan {
 		for _, scanner := range d.scanners {
-			// TODO Pass by reference??
-			go scanner.ScanObject(request)
+			wg.Add(1)
+			go func(req *object.Object, sc Scanner) {
+				defer wg.Done()
+				sc.ScanObject(req, errChan)
+			}(request, scanner)
 		}
 	}
-}
-
-func (d *Dispatcher) Stop() error {
-	d.logger.Debugln("Stopping dispatcher")
-	return nil
+	wg.Wait()
+	d.logger.Debugln("Dispatcher loop stopped")
+	done <- struct{}{}
 }

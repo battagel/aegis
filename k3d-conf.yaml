@@ -13,6 +13,15 @@ registries:
     host: "0.0.0.0"
     hostPort: "12345"
 ports:
+  # Expose MinIO
   - port: 9001:80
     nodeFilters:
       - loadbalancer
+  # Expose Prometheus
+  - port: 9090:80
+    nodeFilters:
+      - loadbalancer
+  # Expose Postgresql
+  - port: 5432:80
+    nodeFilters:
+      - agent:0

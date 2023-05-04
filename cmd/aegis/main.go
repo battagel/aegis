@@ -17,6 +17,7 @@ import (
 	"aegis/pkg/minio"
 	"aegis/pkg/postgresql"
 	"aegis/pkg/prometheus"
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -37,14 +38,15 @@ func run() int {
 	}
 
 	scanChan := make(chan *object.Object)
-	defer close(scanChan)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	logger.Infoln("Starting Aegis")
 	logger.Infow("Config",
 		"config", config,
 	)
 	logger.Debugln("Creating metric manager and collectors")
-	prometheus, err := prometheus.CreatePrometheusExporter(logger, config.PrometheusEndpoint, config.PrometheusPath)
+	prometheus, err := prometheus.CreatePrometheusExporter(logger, ctx, config.PrometheusEndpoint, config.PrometheusPath)
 	if err != nil {
 		logger.Errorw("Error creating prometheus server",
 			"error", err,
@@ -88,7 +90,7 @@ func run() int {
 	}
 
 	logger.Debugln("Creating audit logger")
-	postgresqlDB, dbClose, err := postgresql.CreatePostgresqlDB(logger, config.PostgresqlUsername, config.PostgresqlPassword, config.PostgresqlEndpoint, config.PostgresqlDatabase)
+	postgresqlDB, dbClose, err := postgresql.CreatePostgresqlDB(logger, ctx, config.PostgresqlUsername, config.PostgresqlPassword, config.PostgresqlEndpoint, config.PostgresqlDatabase)
 	if err != nil {
 		logger.Errorw("Error creating postgresql database",
 			"error", err,
@@ -105,7 +107,7 @@ func run() int {
 	}
 
 	logger.Debugln("Creating object store")
-	minioStore, err := minio.CreateMinio(logger, config.MinioEndpoint, config.MinioAccessKey, config.MinioSecretKey, config.MinioUseSSL)
+	minioStore, err := minio.CreateMinio(logger, ctx, config.MinioEndpoint, config.MinioAccessKey, config.MinioSecretKey, config.MinioUseSSL)
 	if err != nil {
 		logger.Errorw("Error creating minio client",
 			"error", err,
@@ -145,6 +147,12 @@ func run() int {
 		return 1
 	}
 	cleaner, err := cleaner.CreateCleaner(logger, objectStore, config.CleanupPolicy, config.QuarantineBucket, cleanerCollector, auditLogger)
+	if err != nil {
+		logger.Errorw("Error creating cleaner",
+			"error", err,
+		)
+		return 1
+	}
 	objectScanner, err := scanner.CreateObjectScanner(logger, objectStore, []scanner.Antivirus{clamAV}, cleaner, auditLogger, scanCollector, config.ClamAVRemoveAfterScan, config.ClamAVDateTimeFormat, config.ClamAVPath)
 	if err != nil {
 		logger.Errorw("Error creating object scanner",
@@ -161,27 +169,29 @@ func run() int {
 	}
 
 	// ### Main Loop ###
+	eventCtx, eventCancel := context.WithCancel(context.Background())
+	defer eventCancel()
 	errChan := make(chan error)
-	go eventsManager.Start(errChan)
-	go dispatcher.Start()
-	go metrics.Start(errChan)
+	doneChan := make(chan struct{})
+	shutdownChan := make(chan os.Signal)
+	go eventsManager.Start(eventCtx, errChan)
+	go dispatcher.Start(errChan, doneChan)
+	go metrics.Start()
 
-	sigchan := make(chan os.Signal)
-	signal.Notify(sigchan, os.Interrupt)
+	// ### Shutdown Sequence ###
+	signal.Notify(shutdownChan, os.Interrupt)
 	select {
 	case err = <-errChan:
 		logger.Errorw("Error in goroutines",
 			"error", err,
 		)
-	case <-sigchan:
+		eventCancel()
+	case <-shutdownChan:
 		logger.Infoln("Shutting down Aegis")
+		eventCancel()
 	}
-	eventsManager.Stop()
-	dispatcher.Stop()
+	<-doneChan
 	metrics.Stop()
-	// Only stop when all scans finished?
-	// Send signals to kafka and scan maanger to stop
-	// sync.waitgroup to wait for all scans to finish
 	return 0
 }
 

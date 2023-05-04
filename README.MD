@@ -41,7 +41,7 @@ kafka-server-start ./local-configs/kafka.properties
 kafka-topics --create --topic minio-put-events --bootstrap-server localhost:9092
 ```
 
-ClamAV. Change ./clamd.conf to use localhost
+ClamAV. Change `./clamd.conf` to use localhost
 
 ```console
 clamd
@@ -96,8 +96,24 @@ Navigate to [http://localhost:9001](http://localhost:9001) to view interact with
 MinIO. Checkout the [usage](#usage) section for how to configure the MinIO client.
 
 Default credentials:
-user: minioadmin
-password: minioadmin
+user: `minioadmin`
+password: `minioadmin`
+
+To connect to the exposed postgresql database
+
+```console
+psql --host localhost --username postgres
+```
+
+To connect Prometheus to Grafana first start the Grafana service.
+
+```console
+grafana server --config ./local-services/grafana.ini
+```
+
+Then connect to the exposed Prometheus service.
+
+Prometheus endpoint: `localhost:9001/prometheus`
 
 ## Testing
 
@@ -117,8 +133,21 @@ All configuration is stored within the config.env file but can be overridden by 
 Default configuration
 
 ```env
-LOGGER_LEVEL=info
-LOGGER_ENCODING=console
+### AEGIS CONFIG ###
+# String: info or debug
+AEGIS_LOGGER_LEVEL=info
+
+# String: Console or json
+AEGIS_LOGGER_ENCODING=json
+
+# Bool: remove files from cache after scan
+AEGIS_REMOVE_AFTER_SCAN=true
+
+# String: tag, remove or quarantine CAUTION WHEN USING REMOVE
+AEGIS_CLEANUP_POLICY=tag
+
+# String: Name of quanrantine bucket. Required if AEGIS_CLEANUP_POLICY=quarantine
+AEGIS_QUARANTINE_BUCKET=
 
 MINIO_ENDPOINT=127.0.0.1:9000
 MINIO_ACCESS_KEY=minioadmin
@@ -126,7 +155,7 @@ MINIO_SECRET_KEY=minioadmin
 MINIO_USE_SSL=false
 
 KAFKA_BROKERS="127.0.0.1:9092"
-KAFKA_TOPIC=minio-put-event
+KAFKA_TOPIC=minio-put-events
 KAFKA_GROUP_ID=g1
 KAFKA_MAX_BYTES=10
 
@@ -137,8 +166,8 @@ CLAMAV_PATH=cache/
 PROMETHEUS_ENDPOINT=127.0.0.1:2112
 PROMETHEUS_PATH=/metrics
 
-POSTGRESQL_USERNAME=postgresql
-POSTGRESQL_PASSWORD=postgresql
+POSTGRESQL_USERNAME=postgres
+POSTGRESQL_PASSWORD=postgres
 POSTGRESQL_ENDPOINT=127.0.0.1:5432
 POSTGRESQL_DATABASE=aegis_antivirus
 POSTGRESQL_TABLE=aegis_audit_logs

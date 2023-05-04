@@ -32,6 +32,10 @@ func CreateObject(logger logger.Logger, bucketName string, objectKey string) (*O
 	}, nil
 }
 
+func (o *Object) SetCachePath(cachePath string) {
+	o.Path = cachePath + o.BucketName + "/" + o.ObjectKey
+}
+
 func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
 	// Check if the parent directory of the file exists, and create it if it doesn't exist
 	if o.Path == "" {
@@ -73,8 +77,4 @@ func (o *Object) RemoveFileFromCache() error {
 		)
 	}
 	return nil
-}
-
-func (o *Object) SetCachePath(cachePath string) {
-	o.Path = cachePath + o.BucketName + "/" + o.ObjectKey
 }

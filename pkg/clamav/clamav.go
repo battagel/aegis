@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"syscall"
 )
 
 type ClamAVScanner struct {
@@ -21,6 +22,9 @@ func (c *ClamAVScanner) ScanFile(filePath string) (bool, string, error) {
 	// Returns false if file is clean, true if infected
 	// If there are any errors then return true (infected)
 	clamCmd := exec.Command("clamdscan", filePath, "--config=clamd.conf")
+	clamCmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 	output, err := clamCmd.Output()
 	c.logger.Debugw("clamdscan output",
 		"output", string(output),
