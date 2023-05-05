@@ -6,21 +6,21 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-type kafkaCollector struct {
+type eventsCollector struct {
 	logger           logger.Logger
 	messagesReceived prometheus.Counter
 }
 
-func CreateKafkaCollector(logger logger.Logger) (*kafkaCollector, error) {
+func CreateEventsCollector(logger logger.Logger) (*eventsCollector, error) {
 	messagesReceieved := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_kafka_total_messages", Help: "Kafka total messages received"})
-	return &kafkaCollector{
+	return &eventsCollector{
 		logger:           logger,
 		messagesReceived: messagesReceieved,
 	}, nil
 }
 
 // Metric update functions
-func (c *kafkaCollector) MessageReceived() {
+func (c *eventsCollector) MessageReceived() {
 	c.logger.Debugln("Incrementing kafka message received counter")
 	c.messagesReceived.Inc()
 }

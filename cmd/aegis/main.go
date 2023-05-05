@@ -67,7 +67,7 @@ func run() int {
 		)
 		return 1
 	}
-	eventsCollector, err := events.CreateKafkaCollector(logger)
+	eventsCollector, err := events.CreateEventsCollector(logger)
 	if err != nil {
 		logger.Errorw("Error creating kafka collector",
 			"error", err,

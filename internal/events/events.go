@@ -38,7 +38,6 @@ func (k *EventsManager) Start(ctx context.Context, errChan chan error) {
 		select {
 		case <-ctx.Done():
 			k.logger.Debugln("Stopping Kafka consumer")
-			close(k.scanChan)
 			err := k.kafka.Close()
 			if err != nil {
 				k.logger.Errorw("Error closing kafka consumer",
@@ -46,6 +45,7 @@ func (k *EventsManager) Start(ctx context.Context, errChan chan error) {
 				)
 				errChan <- err
 			}
+			close(k.scanChan)
 			return
 		default:
 			bucketName, objectKey, err := k.kafka.ReadMessage(ctx)

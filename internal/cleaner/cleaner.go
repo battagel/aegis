@@ -67,7 +67,7 @@ func (c *Cleaner) Cleanup(object *object.Object, result bool, scanTime string) e
 	return nil
 }
 
-func (c *Cleaner) TagInfected(object *object.Object, result bool, scanTime string) error {
+func (c *Cleaner) tagInfected(object *object.Object, result bool, scanTime string) error {
 	if result {
 		c.logger.Debugw("Tagging infected object",
 			"bucketName", object.BucketName,
@@ -116,7 +116,7 @@ func (c *Cleaner) TagInfected(object *object.Object, result bool, scanTime strin
 	return nil
 }
 
-func (c *Cleaner) RemoveInfected(object *object.Object, result bool, scanTime string) error {
+func (c *Cleaner) removeInfected(object *object.Object, result bool, scanTime string) error {
 	if result {
 		c.logger.Debugw("Removing infected object",
 			"bucketName", object.BucketName,
@@ -147,7 +147,7 @@ func (c *Cleaner) RemoveInfected(object *object.Object, result bool, scanTime st
 	return nil
 }
 
-func (c *Cleaner) QuarantineInfected(object *object.Object, result bool, scanTime string) error {
+func (c *Cleaner) quarantineInfected(object *object.Object, result bool, scanTime string) error {
 	if result {
 		c.logger.Debugw("Quarantining infected object",
 			"bucketName", object.BucketName,
