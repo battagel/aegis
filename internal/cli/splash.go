@@ -20,7 +20,6 @@ func PrintSplash(encoding string) {
 
                                     For MinIO
 ----------------------------------------------
- Created by Matthew Battagel
-`)
+ Created by Matthew Battagel`)
 	}
 }

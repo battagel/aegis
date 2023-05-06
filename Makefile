@@ -69,6 +69,17 @@ delete-cluster:
 .PHONY: rebuild-cluster
 rebuild-cluster: delete-cluster docker-build create-cluster
 
+## kafka: Run kafka
+.PHONY: kafka
+kafka:
+	kafka-server-start ./local-configs/kafka.properties
+
+## zookeeper: Run zookeeper
+.PHONY: zookeeper
+zookeeper:
+	zookeeper-server-start ./local-configs/zoo.cfg
+
+
 ## purge-topic: Deletes and recreates the topic to remove dead messages
 .PHONY: purge-topic
 purge-topic:

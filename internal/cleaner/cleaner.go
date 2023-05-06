@@ -49,11 +49,11 @@ func (c *Cleaner) Cleanup(object *object.Object, result bool, scanTime string) e
 	var err error
 	switch c.cleanupPolicy {
 	case "tag":
-		err = c.TagInfected(object, result, scanTime)
+		err = c.tagInfected(object, result, scanTime)
 	case "remove":
-		err = c.RemoveInfected(object, result, scanTime)
+		err = c.removeInfected(object, result, scanTime)
 	case "quarantine":
-		err = c.QuarantineInfected(object, result, scanTime)
+		err = c.quarantineInfected(object, result, scanTime)
 	default:
 		c.logger.Warnln("No cleanup policy found")
 	}

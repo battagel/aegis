@@ -19,8 +19,18 @@ func (_m *ObjectStoreCollector) GetObjectTagging() {
 	_m.Called()
 }
 
+// PutObject provides a mock function with given fields:
+func (_m *ObjectStoreCollector) PutObject() {
+	_m.Called()
+}
+
 // PutObjectTagging provides a mock function with given fields:
 func (_m *ObjectStoreCollector) PutObjectTagging() {
+	_m.Called()
+}
+
+// RemoveObject provides a mock function with given fields:
+func (_m *ObjectStoreCollector) RemoveObject() {
 	_m.Called()
 }
 

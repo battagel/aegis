@@ -13,18 +13,9 @@ type Scanner struct {
 	mock.Mock
 }
 
-// ScanObject provides a mock function with given fields: _a0
-func (_m *Scanner) ScanObject(_a0 *object.Object) error {
-	ret := _m.Called(_a0)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*object.Object) error); ok {
-		r0 = rf(_a0)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+// ScanObject provides a mock function with given fields: _a0, _a1
+func (_m *Scanner) ScanObject(_a0 *object.Object, _a1 chan error) {
+	_m.Called(_a0, _a1)
 }
 
 type mockConstructorTestingTNewScanner interface {

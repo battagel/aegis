@@ -47,5 +47,5 @@ func (c *cleanerCollector) ObjectQuarantined() {
 
 func (c *cleanerCollector) CleanupError() {
 	c.logger.Debugw("Incrementing cleaner error counter")
-	c.cleanupError.Inc()
+	c.cleanupErrors.Inc()
 }

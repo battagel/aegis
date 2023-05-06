@@ -2,67 +2,59 @@ package dispatcher
 
 import (
 	"aegis/internal/object"
+	"aegis/mocks"
 	"aegis/pkg/logger"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-// MockScanner is a mock implementation of the Scanner interface
-type MockScanner struct {
-	mock.Mock
+type tableTest struct {
+	bucketName, objectKey string
 }
 
-// ScanObject is a mocked method for ScanObject in Scanner interface
-func (m *MockScanner) ScanObject(obj *object.Object) error {
-	args := m.Called(obj)
-	return args.Error(0)
+var tableTests = []tableTest{
+	{"test", "test"},
+	{"1234", "1234"},
 }
 
 func TestDispatcher_Start(t *testing.T) {
-	// Create a logger
 	logger, err := logger.CreateZapLogger("debug", "console")
-	assert.NoError(t, err, "Error creating logger")
+	assert.Nil(t, err)
 
-	// Create mock scanners
-	mockScanner1 := new(MockScanner)
-	mockScanner2 := new(MockScanner)
+	mockScanner := new(mocks.Scanner)
+	scanChan := make(chan *object.Object)
+	errChan := make(chan error)
+	doneChan := make(chan struct{})
 
-	// Create a dispatcher with mock scanners
-	dispatcher, err := CreateDispatcher(logger, []Scanner{mockScanner1, mockScanner2}, make(chan *object.Object))
-	assert.NoError(t, err, "Expected no error")
+	dispatcher, err := CreateDispatcher(logger, []Scanner{mockScanner}, scanChan)
+	assert.Nil(t, err)
 
-	// Expect that ScanObject will be called on both scanners with the same object
-	obj := &object.Object{}
-	mockScanner1.On("ScanObject", obj).Return(nil)
-	mockScanner2.On("ScanObject", obj).Return(nil)
+	go dispatcher.Start(errChan, doneChan)
 
-	// Start the dispatcher
-	err = dispatcher.Start()
-	assert.NoError(t, err, "Expected no error")
-
-	// Assert that ScanObject was called on both scanners
-	mockScanner1.AssertExpectations(t)
-	mockScanner2.AssertExpectations(t)
-}
-
-func TestDispatcher_Stop(t *testing.T) {
-	// Create a logger
-	logger, err := logger.CreateZapLogger("debug", "console")
-	assert.NoError(t, err, "Error creating logger")
-
-	// Create mock scanners
-	mockScanner1 := new(MockScanner)
-	mockScanner2 := new(MockScanner)
-
-	// Create a dispatcher with mock scanners
-	dispatcher, err := CreateDispatcher(logger, []Scanner{mockScanner1, mockScanner2}, make(chan *object.Object))
-	assert.NoError(t, err, "Expected no error")
-
-	// Call Stop on the dispatcher
-	err = dispatcher.Stop()
-
-	// Assert that Stop returned no error
-	assert.NoError(t, err, "Expected no error")
+	for _, test := range tableTests {
+		logger.Infow("Test started",
+			"bucketName", test.bucketName,
+			"objectKey", test.objectKey,
+		)
+		request, err := object.CreateObject(logger, test.bucketName, test.objectKey)
+		assert.Nil(t, err)
+		mockScanner.On("ScanObject", request, errChan).Return(nil)
+		scanChan <- request
+		select {
+		case err := <-errChan:
+			logger.Errorw("Test failed",
+				"bucketName", test.bucketName,
+				"objectKey", test.objectKey,
+				"err", err,
+			)
+			t.Fail()
+		default:
+			logger.Infow("Test passed",
+				"test", test,
+			)
+		}
+	}
+	logger.Infoln("Test Complete: Closing scanChan")
+	close(scanChan)
 }
