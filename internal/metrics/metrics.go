@@ -4,17 +4,17 @@ import (
 	"aegis/pkg/logger"
 )
 
-type Prometheus interface {
+type MetricService interface {
 	Start() error
 	Stop() error
 }
 
 type MetricsManager struct {
 	logger     logger.Logger
-	prometheus Prometheus
+	prometheus MetricService
 }
 
-func CreateMetricsManager(logger logger.Logger, prometheus Prometheus) (*MetricsManager, error) {
+func CreateMetricsManager(logger logger.Logger, prometheus MetricService) (*MetricsManager, error) {
 	logger.Debugln("Creating Metrics Manager")
 	return &MetricsManager{
 		logger:     logger,

@@ -75,6 +75,7 @@ func (s *Scanner) ScanObject(object *object.Object, errChan chan error) {
 		)
 		s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_getting_object", "", scanTime, "")
 		s.scanCollector.ScanError()
+		s.logger.Debugln("Debug")
 		errChan <- err
 		return
 	}
@@ -102,10 +103,10 @@ func (s *Scanner) ScanObject(object *object.Object, errChan chan error) {
 	)
 	overallResult := false
 	for _, antivirus := range s.antiviruses {
-		scanStart := time.Now()
+		//scanStart := time.Now()
 		result, virusType, err := antivirus.ScanFile(object.Path)
-		scanElapsed := float64(time.Since(scanStart) / time.Millisecond)
-		s.scanCollector.ScanTime(scanElapsed)
+		//scanElapsed := float64(time.Since(scanStart) / time.Millisecond)
+		// s.scanCollector.ScanTime(scanElapsed)
 		if err != nil {
 			s.logger.Errorw("Error executing scan",
 				"antivirus", antivirus.GetName(),

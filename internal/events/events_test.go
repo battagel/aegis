@@ -5,21 +5,14 @@ import (
 	"aegis/mocks"
 	"aegis/pkg/logger"
 	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-// MockKafka is a mock implementation of the Kafka interface
-type MockKafka struct {
-	mock.Mock
-}
-
-// MockEventsCollector is a mock implementation of the EventsCollector interface
-type MockEventsCollector struct {
-	mock.Mock
-}
+var ctx = context.WithValue(context.Background(), "key", "value")
 
 type tableTest struct {
 	arg1     context.Context
@@ -28,8 +21,6 @@ type tableTest struct {
 		objectKey  string
 	}
 }
-
-var ctx = context.WithValue(context.Background(), "key", "value")
 
 var tableTests = []tableTest{
 	{
@@ -44,14 +35,14 @@ var tableTests = []tableTest{
 	},
 }
 
-func TestEventsManager_Start(t *testing.T) {
+func TestEventsManager_Start_Happy(t *testing.T) {
 	// Create mock logger
 	logger, err := logger.CreateZapLogger("debug", "console")
 	assert.Nil(t, err)
 
 	scanChan := make(chan *object.Object)
 	errChan := make(chan error)
-	mockKafka := new(mocks.Kafka)
+	mockKafka := new(mocks.EventsQueue)
 	mockKafka.On("ReadMessage", ctx).Return("test", "test", nil)
 	mockEventsCollector := new(mocks.EventsCollector)
 	mockEventsCollector.On("MessageReceived").Return(nil)
@@ -64,9 +55,160 @@ func TestEventsManager_Start(t *testing.T) {
 		request, err := object.CreateObject(logger, test.expected.bucketName, test.expected.objectKey)
 		assert.Nil(t, err)
 		assert.Equal(t, request, <-scanChan)
+		select {
+		case err := <-errChan:
+			logger.Errorw("Test failed",
+				"bucketName", test.expected.bucketName,
+				"objectKey", test.expected.objectKey,
+				"err", err,
+			)
+			t.Fail()
+		default:
+			logger.Infow("Test passed",
+				"bucketName", test.expected.bucketName,
+				"objectKey", test.expected.objectKey,
+			)
+		}
 	}
 }
 
-// func TestEventsManager_Stop(t *testing.T) {
-// 	logger.CreateZapLogger("debug", "console")
-// }
+func TestEventsManager_Close_Happy(t *testing.T) {
+	// Create mock logger
+	logger, err := logger.CreateZapLogger("debug", "console")
+	assert.Nil(t, err)
+
+	closeCtx, closeCtxCancel := context.WithCancel(context.Background())
+	scanChan := make(chan *object.Object)
+	errChan := make(chan error)
+	mockKafka := new(mocks.EventsQueue)
+	mockKafka.On("ReadMessage", closeCtx).Return("test", "test", nil)
+	mockEventsCollector := new(mocks.EventsCollector)
+	mockEventsCollector.On("MessageReceived").Return(nil)
+
+	eventsManager, err := CreateEventsManager(logger, scanChan, mockKafka, mockEventsCollector)
+	assert.Nil(t, err)
+
+	go eventsManager.Start(closeCtx, errChan)
+	time.Sleep(1 * time.Second)
+	closeCtxCancel()
+	time.Sleep(1 * time.Second)
+	select {
+	case err := <-errChan:
+		logger.Errorw("Test failed",
+			"err", err,
+		)
+		t.Fail()
+	default:
+		logger.Infoln("Test passed")
+	}
+}
+
+func TestEventsManager_Close_ErrorCloseKafka(t *testing.T) {
+	// Create mock logger
+	logger, err := logger.CreateZapLogger("debug", "console")
+	assert.Nil(t, err)
+
+	closeCtx, closeCtxCancel := context.WithCancel(context.Background())
+	scanChan := make(chan *object.Object)
+	errChan := make(chan error)
+	mockKafka := new(mocks.EventsQueue)
+	mockKafka.On("ReadMessage", closeCtx).Return("test", "test", nil)
+	mockKafka.On("Close").Return(errors.New("Error Closing Kafka"))
+	mockEventsCollector := new(mocks.EventsCollector)
+	mockEventsCollector.On("MessageReceived").Return(nil)
+
+	eventsManager, err := CreateEventsManager(logger, scanChan, mockKafka, mockEventsCollector)
+	assert.Nil(t, err)
+
+	go eventsManager.Start(closeCtx, errChan)
+	time.Sleep(1 * time.Second)
+	logger.Infoln("Closing Kafka")
+	closeCtxCancel()
+	time.Sleep(1 * time.Second)
+	select {
+	case err := <-errChan:
+		assert.EqualError(t, err, "Error Closing Kafka")
+		logger.Infow("Test passed: Error recieved",
+			"err", err,
+		)
+	default:
+		logger.Errorln("Test failed")
+		t.Fail()
+	}
+}
+func TestEventsManager_Start_ErrorDecodeMsg(t *testing.T) {
+	// Create mock logger
+	logger, err := logger.CreateZapLogger("debug", "console")
+	assert.Nil(t, err)
+
+	scanChan := make(chan *object.Object)
+	errChan := make(chan error)
+	mockKafka := new(mocks.EventsQueue)
+	mockKafka.On("ReadMessage", ctx).Return("", "", errors.New("Error Decoding Message"))
+	mockEventsCollector := new(mocks.EventsCollector)
+	mockEventsCollector.On("MessageReceived").Return(nil)
+
+	eventsManager, err := CreateEventsManager(logger, scanChan, mockKafka, mockEventsCollector)
+	assert.Nil(t, err)
+
+	go eventsManager.Start(ctx, errChan)
+	for _, test := range tableTests {
+		request, err := object.CreateObject(logger, test.expected.bucketName, test.expected.objectKey)
+		assert.Nil(t, err)
+		assert.Equal(t, request, <-scanChan)
+		select {
+		case err := <-errChan:
+			assert.EqualError(t, err, "Error Decoding Message")
+			logger.Errorw("Test passed: Error received",
+				"bucketName", test.expected.bucketName,
+				"objectKey", test.expected.objectKey,
+				"err", err,
+			)
+		default:
+			logger.Infow("Test failed",
+				"bucketName", test.expected.bucketName,
+				"objectKey", test.expected.objectKey,
+			)
+			t.Fail()
+		}
+	}
+}
+
+func TestEventsManager_Start_ErrorCreateObj(t *testing.T) {
+	// Create mock logger
+	logger, err := logger.CreateZapLogger("debug", "console")
+	assert.Nil(t, err)
+
+	scanChan := make(chan *object.Object)
+	errChan := make(chan error)
+	mockKafka := new(mocks.EventsQueue)
+	mockKafka.On("ReadMessage", ctx).Return("", "", errors.New("Error Creating Object"))
+	mockEventsCollector := new(mocks.EventsCollector)
+	mockEventsCollector.On("MessageReceived").Return(nil)
+
+	eventsManager, err := CreateEventsManager(logger, scanChan, mockKafka, mockEventsCollector)
+	assert.Nil(t, err)
+
+	go eventsManager.Start(ctx, errChan)
+	for _, test := range tableTests {
+		request, err := object.CreateObject(logger, test.expected.bucketName, test.expected.objectKey)
+		assert.Nil(t, err)
+		assert.Equal(t, request, <-scanChan)
+		assert.Equal(t, request, <-scanChan)
+		select {
+		case err := <-errChan:
+			assert.EqualError(t, err, "Error Creating Object")
+			logger.Errorw("Test passed: Error received",
+				"bucketName", test.expected.bucketName,
+				"objectKey", test.expected.objectKey,
+				"err", err,
+			)
+		default:
+			logger.Infow("Test failed",
+				"bucketName", test.expected.bucketName,
+				"objectKey", test.expected.objectKey,
+			)
+			t.Fail()
+		}
+	}
+}

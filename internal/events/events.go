@@ -10,19 +10,19 @@ type EventsCollector interface {
 	MessageReceived()
 }
 
-type Kafka interface {
+type EventsQueue interface {
 	ReadMessage(context.Context) (string, string, error)
 	Close() error
 }
 
 type EventsManager struct {
 	logger          logger.Logger
-	kafka           Kafka
+	kafka           EventsQueue
 	scanChan        chan *object.Object
 	eventsCollector EventsCollector
 }
 
-func CreateEventsManager(logger logger.Logger, scanChan chan *object.Object, kafka Kafka, eventsCollector EventsCollector) (*EventsManager, error) {
+func CreateEventsManager(logger logger.Logger, scanChan chan *object.Object, kafka EventsQueue, eventsCollector EventsCollector) (*EventsManager, error) {
 	logger.Debugln("Creating Event Manager")
 	return &EventsManager{
 		logger:          logger,

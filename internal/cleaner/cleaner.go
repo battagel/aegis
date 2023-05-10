@@ -3,6 +3,7 @@ package cleaner
 import (
 	"aegis/internal/object"
 	"aegis/pkg/logger"
+	"errors"
 )
 
 type ObjectStore interface {
@@ -160,6 +161,7 @@ func (c *Cleaner) quarantineInfected(object *object.Object, result bool, scanTim
 			)
 			c.auditLogger.Log(object.BucketName, object.ObjectKey, "error_quarantining_object", "", scanTime, "")
 			c.cleanerCollector.CleanupError()
+			return errors.New("Quarantine bucket not set")
 		}
 		err := c.objectStore.MoveObject(object.BucketName, object.ObjectKey, c.quarantineBucket, object.ObjectKey)
 		if err != nil {
@@ -169,6 +171,8 @@ func (c *Cleaner) quarantineInfected(object *object.Object, result bool, scanTim
 				"quarantineBucket", c.quarantineBucket,
 				"error", err,
 			)
+			c.auditLogger.Log(object.BucketName, object.ObjectKey, "error_quarantining_object", "", scanTime, "")
+			c.cleanerCollector.CleanupError()
 			return err
 		}
 		c.logger.Debugw("Successfully quarantined infected object",

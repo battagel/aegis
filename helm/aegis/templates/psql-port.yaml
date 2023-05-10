@@ -10,7 +10,6 @@ spec:
       nodePort: 30080
       port: 5432
       protocol: TCP
-      targetPort: 5432
   selector:
     app.kubernetes.io/name: postgresql
   type: NodePort

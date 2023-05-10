@@ -23,7 +23,10 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-podAnnotations: {}
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: /metrics
+  prometheus.io/port: "2112"
 
 podSecurityContext:
   {}
@@ -45,7 +48,7 @@ service:
 env:
   MINIO_ENDPOINT: aegis-minio.default.svc.cluster.local:9000
   KAFKA_BROKERS: "aegis-kafka.default.svc.cluster.local:9092"
-  PROMETHEUS_ENDPOINT: 0.0.0.0:9090
+  PROMETHEUS_ENDPOINT: 0.0.0.0:2112
   PROMETHEUS_PATH: /metrics
   POSTGRESQL_ENDPOINT: aegis-postgresql.default.svc.cluster.local:5432
 

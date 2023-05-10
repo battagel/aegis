@@ -27,5 +27,16 @@ func CreateAuditLogger(logger logger.Logger, db Database, tableName string) (*Au
 
 func (a *AuditLogger) Log(bucketName, objectKey, result, antivirus, timestamp, virusType string) {
 	a.logger.Debugln("Adding audit log")
-	a.db.Insert(a.tableName, bucketName, objectKey, result, antivirus, timestamp, virusType)
+	err := a.db.Insert(a.tableName, bucketName, objectKey, result, antivirus, timestamp, virusType)
+	if err != nil {
+		a.logger.Errorw("Error adding audit log",
+			"bucketName", bucketName,
+			"objectKey", objectKey,
+			"result", result,
+			"antivirus", antivirus,
+			"timestamp", timestamp,
+			"virusType", virusType,
+			"error", err,
+		)
+	}
 }

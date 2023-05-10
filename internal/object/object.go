@@ -33,16 +33,19 @@ func CreateObject(logger logger.Logger, bucketName string, objectKey string) (*O
 }
 
 func (o *Object) SetCachePath(cachePath string) {
-	o.Path = cachePath + o.BucketName + "/" + o.ObjectKey
+	o.Path = cachePath + "/" + o.BucketName + "/" + o.ObjectKey
 }
 
 func (o *Object) SaveByteStreamToFile(objectStream []byte) error {
 	// Check if the parent directory of the file exists, and create it if it doesn't exist
+	o.logger.Debugw("Cache path",
+		"cachePath", o.Path,
+	)
 	if o.Path == "" {
 		o.logger.Errorw("Cache path is empty",
 			"cachePath", o.Path,
 		)
-		return errors.New("Cache path is empty")
+		return errors.New("Error cache path is empty")
 	}
 	destDir := filepath.Dir(o.Path)
 	if _, err := os.Stat(destDir); os.IsNotExist(err) {
@@ -75,6 +78,7 @@ func (o *Object) RemoveFileFromCache() error {
 		o.logger.Errorw("Failed to remove file from cache",
 			"error", err,
 		)
+		return err
 	}
 	return nil
 }

@@ -7,6 +7,7 @@ metadata:
 #
 # Set your `imagePullPolicy` to `Always` to automatically pull new images
 # during development if you prefer.
+# agents: 2
 registries:
   create:
     name: registry.localhost
@@ -14,14 +15,14 @@ registries:
     hostPort: "12345"
 ports:
   # Expose MinIO
-  - port: 9001:80
+  - port: 9001:30001
     nodeFilters:
-      - loadbalancer
+      - server:0
   # Expose Prometheus
-  - port: 9090:80
+  - port: 9090:30090
     nodeFilters:
-      - loadbalancer
+      - server:0
   # Expose Postgresql
-  - port: 5432:80
+  - port: 5432:30080
     nodeFilters:
-      - agent:0
+      - server:0
