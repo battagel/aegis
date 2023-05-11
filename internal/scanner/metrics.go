@@ -17,8 +17,8 @@ type scanCollector struct {
 
 func CreateScanCollector(logger logger.Logger) (*scanCollector, error) {
 	filesScanned := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scanner_total_scans", Help: "Total number of scans performed by Aegis"})
-	cleanFiles := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scanner_infected_files", Help: "Total of infected files scanned by Aegis"})
-	infectedFiles := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scanner_clean_files", Help: "Total of clean files scanned by Aegis"})
+	cleanFiles := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scanner_clean_files", Help: "Total of infected files scanned by Aegis"})
+	infectedFiles := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scanner_infected_files", Help: "Total of clean files scanned by Aegis"})
 	scanErrors := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_scanner_errors", Help: "Total number of errors encountered during scans by Aegis"})
 	scanTime := promauto.NewHistogram(prometheus.HistogramOpts{Name: "aegis_scanner_time", Help: "Time taken to perform a scan", Buckets: []float64{0, 125, 250, 500, 1000, 2000, 4000, 8000, 16000}})
 	return &scanCollector{

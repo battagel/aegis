@@ -8,6 +8,7 @@ import (
 
 type EventsCollector interface {
 	MessageReceived()
+	EventsError()
 }
 
 type EventsQueue interface {
@@ -53,6 +54,7 @@ func (k *EventsManager) Start(ctx context.Context, errChan chan error) {
 				k.logger.Errorw("Error decoding message",
 					"error", err,
 				)
+				k.eventsCollector.EventsError()
 				errChan <- err
 				continue
 			}
@@ -63,6 +65,7 @@ func (k *EventsManager) Start(ctx context.Context, errChan chan error) {
 					k.logger.Errorw("Error creating object",
 						"error", err,
 					)
+					k.eventsCollector.EventsError()
 					errChan <- err
 					continue
 				}

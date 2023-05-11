@@ -79,6 +79,10 @@ kafka:
 zookeeper:
 	zookeeper-server-start ./local-configs/zoo.cfg
 
+## zookeeper: Run grafana
+.PHONY: grafana
+grafana:
+	grafana server --config=./local-configs/grafana.ini --homepath=/opt/homebrew/share/grafana
 
 ## purge-topic: Deletes and recreates the topic to remove dead messages
 .PHONY: purge-topic

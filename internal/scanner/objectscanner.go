@@ -75,7 +75,6 @@ func (s *Scanner) ScanObject(object *object.Object, errChan chan error) {
 		)
 		s.auditLogger.Log(object.BucketName, object.ObjectKey, "error_getting_object", "", scanTime, "")
 		s.scanCollector.ScanError()
-		s.logger.Debugln("Debug")
 		errChan <- err
 		return
 	}

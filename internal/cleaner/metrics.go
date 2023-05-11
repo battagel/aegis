@@ -15,9 +15,9 @@ type cleanerCollector struct {
 }
 
 func CreateCleanerCollector(logger logger.Logger) (*cleanerCollector, error) {
-	objectsRemoved := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_cleaner_object_removed", Help: "Cleaner total objects removed"})
-	objectsTagged := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_cleaner_object_tagged", Help: "Cleaner total objects tagging"})
-	objectsQuarentined := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_cleaner_object_quarentined", Help: "Cleaner total objects quarentined"})
+	objectsRemoved := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_cleaner_objects_removed", Help: "Cleaner total objects removed"})
+	objectsTagged := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_cleaner_objects_tagged", Help: "Cleaner total objects tagging"})
+	objectsQuarentined := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_cleaner_objects_quarentined", Help: "Cleaner total objects quarentined"})
 	cleanupErrors := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_cleaner_errors", Help: "Cleaner total errors"})
 	return &cleanerCollector{
 		logger:             logger,

@@ -15,4 +15,5 @@ func TestScanCollector_Happy(t *testing.T) {
 	assert.Nil(t, err)
 
 	eventsCollector.MessageReceived()
+	eventsCollector.EventsError()
 }

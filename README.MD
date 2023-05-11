@@ -53,6 +53,12 @@ Prometheus
 prometheus --config.file=./local-configs/prometheus.yml
 ```
 
+Grafana
+
+```console
+grafana server --config ./local-configs/grafana.ini --homepath /opt/homebrew/share/grafana
+```
+
 Postgresql
 
 ```console

@@ -9,13 +9,16 @@ import (
 type eventsCollector struct {
 	logger           logger.Logger
 	messagesReceived prometheus.Counter
+	eventsError      prometheus.Counter
 }
 
 func CreateEventsCollector(logger logger.Logger) (*eventsCollector, error) {
-	messagesReceieved := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_kafka_total_messages", Help: "Kafka total messages received"})
+	messagesReceieved := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_events_total_messages", Help: "Events total messages received"})
+	eventsErrors := promauto.NewCounter(prometheus.CounterOpts{Name: "aegis_events_total_errors", Help: "Events total errors"})
 	return &eventsCollector{
 		logger:           logger,
 		messagesReceived: messagesReceieved,
+		eventsError:      eventsErrors,
 	}, nil
 }
 
@@ -23,4 +26,9 @@ func CreateEventsCollector(logger logger.Logger) (*eventsCollector, error) {
 func (c *eventsCollector) MessageReceived() {
 	c.logger.Debugln("Incrementing kafka message received counter")
 	c.messagesReceived.Inc()
+}
+
+func (c *eventsCollector) EventsError() {
+	c.logger.Debugln("Incrementing kafka event error counter")
+	c.eventsError.Inc()
 }
