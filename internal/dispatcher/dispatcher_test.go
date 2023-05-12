@@ -2,7 +2,6 @@ package dispatcher
 
 import (
 	"aegis/internal/object"
-	"aegis/mocks"
 	"aegis/pkg/logger"
 	"testing"
 
@@ -22,12 +21,12 @@ func TestDispatcher_Start(t *testing.T) {
 	logger, err := logger.CreateZapLogger("debug", "console")
 	assert.Nil(t, err)
 
-	mockScanner := new(mocks.Scanner)
+	Mockanner := new(MockScanner)
 	scanChan := make(chan *object.Object)
 	errChan := make(chan error)
 	doneChan := make(chan struct{})
 
-	dispatcher, err := CreateDispatcher(logger, []Scanner{mockScanner}, scanChan)
+	dispatcher, err := CreateDispatcher(logger, []Scanner{Mockanner}, scanChan)
 	assert.Nil(t, err)
 
 	go dispatcher.Start(errChan, doneChan)
@@ -39,7 +38,7 @@ func TestDispatcher_Start(t *testing.T) {
 		)
 		request, err := object.CreateObject(logger, test.bucketName, test.objectKey)
 		assert.Nil(t, err)
-		mockScanner.On("ScanObject", request, errChan).Return(nil)
+		Mockanner.On("ScanObject", request, errChan).Return(nil)
 		scanChan <- request
 		select {
 		case err := <-errChan:

@@ -1,7 +1,6 @@
 package auditlog
 
 import (
-	"aegis/mocks"
 	"aegis/pkg/logger"
 	"errors"
 	"testing"
@@ -16,7 +15,7 @@ func TestAuditLogger_Log_Happy(t *testing.T) {
 	assert.Nil(t, err)
 
 	tableName := "test"
-	mockDB := new(mocks.Database)
+	mockDB := new(MockDatabase)
 	mockDB.On("CreateTable", tableName).Return(nil)
 	mockDB.On("Insert", tableName, mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
 
@@ -32,7 +31,7 @@ func TestAuditLogger_Log_Error(t *testing.T) {
 	assert.Nil(t, err)
 
 	tableName := "test"
-	mockDB := new(mocks.Database)
+	mockDB := new(MockDatabase)
 	mockDB.On("CreateTable", tableName).Return(nil)
 	mockDB.On("Insert", tableName, mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(errors.New("Error inserting into table"))
 

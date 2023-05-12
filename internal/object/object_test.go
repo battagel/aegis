@@ -1,5 +1,0 @@
-package object
-
-import (
-	"fmt"
-)

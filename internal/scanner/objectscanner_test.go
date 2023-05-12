@@ -2,7 +2,6 @@ package scanner
 
 import (
 	"aegis/internal/object"
-	"aegis/mocks"
 	"aegis/pkg/logger"
 	"errors"
 	"os"
@@ -25,14 +24,14 @@ var tableTests = []tableTest{
 }
 
 type testItems struct {
-	logger            logger.Logger
-	mockObjectStore   *mocks.ObjectStore
-	mockAntivirus     *mocks.Antivirus
-	mockCleaner       *mocks.Cleaner
-	mockAuditLogger   *mocks.AuditLogger
-	mockScanCollector *mocks.ScanCollector
-	scanner           *Scanner
-	errChan           chan error
+	logger          logger.Logger
+	mockObjectStore *MockObjectStore
+	mockAntivirus   *MockAntivirus
+	mockCleaner     *MockCleaner
+	mockAuditLogger *MockAuditLogger
+	MockanCollector *MockScanCollector
+	scanner         *Scanner
+	errChan         chan error
 }
 
 func createTestItems(t *testing.T) *testItems {
@@ -43,34 +42,34 @@ func createTestItems(t *testing.T) *testItems {
 	datetimeFormat := "01-02-2006 15:04:05"
 	cachePath := "cache/testing"
 
-	mockObjectStore := new(mocks.ObjectStore)
-	mockAntivirus := new(mocks.Antivirus)
-	mockCleaner := new(mocks.Cleaner)
-	mockAuditLogger := new(mocks.AuditLogger)
-	mockScanCollector := new(mocks.ScanCollector)
+	mockObjectStore := new(MockObjectStore)
+	mockAntivirus := new(MockAntivirus)
+	mockCleaner := new(MockCleaner)
+	mockAuditLogger := new(MockAuditLogger)
+	MockanCollector := new(MockScanCollector)
 
 	errChan := make(chan error, 1)
 
-	scanner, err := CreateObjectScanner(logger, mockObjectStore, []Antivirus{mockAntivirus}, mockCleaner, mockAuditLogger, mockScanCollector, removeAfterScan, datetimeFormat, cachePath)
+	scanner, err := CreateObjectScanner(logger, mockObjectStore, []Antivirus{mockAntivirus}, mockCleaner, mockAuditLogger, MockanCollector, removeAfterScan, datetimeFormat, cachePath)
 	assert.Nil(t, err)
 
 	mockAuditLogger.On("Log", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
-	mockScanCollector.On("FileScanned").Return(nil)
-	mockScanCollector.On("CleanFile").Return(nil)
-	mockScanCollector.On("InfectedFile").Return(nil)
-	mockScanCollector.On("ScanError").Return(nil)
+	MockanCollector.On("FileScanned").Return(nil)
+	MockanCollector.On("CleanFile").Return(nil)
+	MockanCollector.On("InfectedFile").Return(nil)
+	MockanCollector.On("ScanError").Return(nil)
 	mockAntivirus.On("GetName").Return("mock-av")
 	mockCleaner.On("Cleanup", mock.AnythingOfType("*object.Object"), mock.AnythingOfType("bool"), mock.AnythingOfType("string")).Return(nil)
 
 	return &testItems{
-		logger:            logger,
-		mockObjectStore:   mockObjectStore,
-		mockAntivirus:     mockAntivirus,
-		mockCleaner:       mockCleaner,
-		mockAuditLogger:   mockAuditLogger,
-		mockScanCollector: mockScanCollector,
-		scanner:           scanner,
-		errChan:           errChan,
+		logger:          logger,
+		mockObjectStore: mockObjectStore,
+		mockAntivirus:   mockAntivirus,
+		mockCleaner:     mockCleaner,
+		mockAuditLogger: mockAuditLogger,
+		MockanCollector: MockanCollector,
+		scanner:         scanner,
+		errChan:         errChan,
 	}
 }
 

@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"aegis/mocks"
 	"aegis/pkg/logger"
 	"testing"
 
@@ -11,7 +10,7 @@ import (
 func TestMetricsManager_Happy(t *testing.T) {
 	logger, err := logger.CreateZapLogger("debug", "console")
 
-	mockPrometheus := new(mocks.MetricService)
+	mockPrometheus := new(MockMetricService)
 	mockPrometheus.On("Start").Return(nil)
 	mockPrometheus.On("Stop").Return(nil)
 

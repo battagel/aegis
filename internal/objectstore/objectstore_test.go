@@ -1,11 +1,11 @@
 package objectstore
 
 import (
-	"aegis/mocks"
 	"aegis/pkg/logger"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	mock "github.com/stretchr/testify/mock"
 )
 
 type tableTest struct {
@@ -22,14 +22,15 @@ var tableTests = []tableTest{
 
 type testItems struct {
 	logger      logger.Logger
+	mockMinio   *MockMinio
 	objectStore *ObjectStore
 }
 
-func CreateTestItems(t *testing.T) {
+func CreateTestItems(t *testing.T) *testItems {
 	logger, err := logger.CreateZapLogger("debug", "console")
 
-	mockMinio := new(mocks.Minio)
-	mockObjectStoreCollector := new(mocks.ObjectStoreCollector)
+	mockMinio := new(MockMinio)
+	mockObjectStoreCollector := new(MockObjectStoreCollector)
 	mockObjectStoreCollector.On("GetObject").Return(nil)
 	mockObjectStoreCollector.On("PutObject").Return(nil)
 	mockObjectStoreCollector.On("RemoveObject").Return(nil)
@@ -41,18 +42,67 @@ func CreateTestItems(t *testing.T) {
 
 	return &testItems{
 		logger:      logger,
+		mockMinio:   mockMinio,
 		objectStore: objectStore,
 	}
 }
 
-func TestObjectStore_GetObject_Happy()
+func TestObjectStore_GetObject_Happy(t *testing.T) {
 	testItems := CreateTestItems(t)
 
-	testItems.mockMinio.On("GetObject", ).Return(nil)
+	testItems.mockMinio.On("GetObject").Return(nil)
 
-	testItems.objectStore.GetObject()
-
-	
+	for _, test := range tableTests {
+		testItems.mockMinio.On("GetObject", test.bucketName, test.objectKey).Return([]byte("test"), nil)
+		_, err := testItems.objectStore.GetObject(test.bucketName, test.objectKey)
+		assert.Nil(t, err)
+	}
 }
 
+func TestObjectStore_PutObject_Happy(t *testing.T) {
+	testItems := CreateTestItems(t)
 
+	testItems.mockMinio.On("PutObject").Return(nil)
+
+	for _, test := range tableTests {
+		testItems.mockMinio.On("PutObject", test.bucketName, test.objectKey, mock.AnythingOfType("[]uint8")).Return(nil)
+		err := testItems.objectStore.PutObject(test.bucketName, test.objectKey, []byte("test"))
+		assert.Nil(t, err)
+	}
+}
+
+func TestObjectStore_RemoveObject_Happy(t *testing.T) {
+	testItems := CreateTestItems(t)
+
+	testItems.mockMinio.On("RemoveObject").Return(nil)
+
+	for _, test := range tableTests {
+		testItems.mockMinio.On("RemoveObject", test.bucketName, test.objectKey).Return(nil)
+		err := testItems.objectStore.RemoveObject(test.bucketName, test.objectKey)
+		assert.Nil(t, err)
+	}
+}
+
+func TestObjectStore_GetObjectTagging_Happy(t *testing.T) {
+	testItems := CreateTestItems(t)
+
+	testItems.mockMinio.On("GetObjectTagging").Return(nil)
+
+	for _, test := range tableTests {
+		testItems.mockMinio.On("GetObjectTagging", test.bucketName, test.objectKey).Return(map[string]string{"test": "test"}, nil)
+		_, err := testItems.objectStore.GetObjectTagging(test.bucketName, test.objectKey)
+		assert.Nil(t, err)
+	}
+}
+
+func TestObjectStore_PutObjectTagging_Happy(t *testing.T) {
+	testItems := CreateTestItems(t)
+
+	testItems.mockMinio.On("PutObjectTagging").Return(nil)
+
+	for _, test := range tableTests {
+		testItems.mockMinio.On("PutObjectTagging", test.bucketName, test.objectKey, mock.AnythingOfType("map[string]string")).Return(nil)
+		err := testItems.objectStore.PutObjectTagging(test.bucketName, test.objectKey, map[string]string{"test": "test"})
+		assert.Nil(t, err)
+	}
+}

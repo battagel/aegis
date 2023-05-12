@@ -9,6 +9,11 @@ type MockEventsCollector struct {
 	mock.Mock
 }
 
+// EventsError provides a mock function with given fields:
+func (_m *MockEventsCollector) EventsError() {
+	_m.Called()
+}
+
 // MessageReceived provides a mock function with given fields:
 func (_m *MockEventsCollector) MessageReceived() {
 	_m.Called()

@@ -2,7 +2,6 @@ package cleaner
 
 import (
 	"aegis/internal/object"
-	"aegis/mocks"
 	"aegis/pkg/logger"
 	"testing"
 	"time"
@@ -30,17 +29,17 @@ func TestEventsManager_Start_Remove_Happy(t *testing.T) {
 	logger, err := logger.CreateZapLogger("debug", "console")
 	assert.Nil(t, err)
 
-	mockObjectStore := new(mocks.ObjectStore)
+	mockObjectStore := new(MockObjectStore)
 	mockObjectStore.On("RemoveObject", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
 	cleanupPolicy := "remove"
 	quarantineBucket := ""
-	mockCleanerCollector := new(mocks.CleanerCollector)
+	mockCleanerCollector := new(MockCleanerCollector)
 	mockCleanerCollector.On("ObjectRemoved").Return(nil)
 	mockCleanerCollector.On("ObjectTagged").Return(nil)
 	mockCleanerCollector.On("ObjectQuarantined").Return(nil)
 	mockCleanerCollector.On("CleanupError").Return(nil)
 
-	mockAuditLogger := new(mocks.AuditLogger)
+	mockAuditLogger := new(MockAuditLogger)
 	mockAuditLogger.On("Log", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
 
 	cleaner, err := CreateCleaner(logger, mockObjectStore, cleanupPolicy, quarantineBucket, mockCleanerCollector, mockAuditLogger)
@@ -61,17 +60,17 @@ func TestEventsManager_Start_Tag_Happy(t *testing.T) {
 	logger, err := logger.CreateZapLogger("debug", "console")
 	assert.Nil(t, err)
 
-	mockObjectStore := new(mocks.ObjectStore)
+	mockObjectStore := new(MockObjectStore)
 	mockObjectStore.On("AddObjectTagging", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("map[string]string")).Return(nil)
 	cleanupPolicy := "tag"
 	quarantineBucket := ""
-	mockCleanerCollector := new(mocks.CleanerCollector)
+	mockCleanerCollector := new(MockCleanerCollector)
 	mockCleanerCollector.On("ObjectRemoved").Return(nil)
 	mockCleanerCollector.On("ObjectTagged").Return(nil)
 	mockCleanerCollector.On("ObjectQuarantined").Return(nil)
 	mockCleanerCollector.On("CleanupError").Return(nil)
 
-	mockAuditLogger := new(mocks.AuditLogger)
+	mockAuditLogger := new(MockAuditLogger)
 	mockAuditLogger.On("Log", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
 
 	cleaner, err := CreateCleaner(logger, mockObjectStore, cleanupPolicy, quarantineBucket, mockCleanerCollector, mockAuditLogger)
@@ -92,17 +91,17 @@ func TestEventsManager_Start_Quarantine_Happy(t *testing.T) {
 	logger, err := logger.CreateZapLogger("debug", "console")
 	assert.Nil(t, err)
 
-	mockObjectStore := new(mocks.ObjectStore)
+	mockObjectStore := new(MockObjectStore)
 	mockObjectStore.On("MoveObject", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
 	cleanupPolicy := "quarantine"
 	quarantineBucket := "quarantine"
-	mockCleanerCollector := new(mocks.CleanerCollector)
+	mockCleanerCollector := new(MockCleanerCollector)
 	mockCleanerCollector.On("ObjectRemoved").Return(nil)
 	mockCleanerCollector.On("ObjectTagged").Return(nil)
 	mockCleanerCollector.On("ObjectQuarantined").Return(nil)
 	mockCleanerCollector.On("CleanupError").Return(nil)
 
-	mockAuditLogger := new(mocks.AuditLogger)
+	mockAuditLogger := new(MockAuditLogger)
 	mockAuditLogger.On("Log", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
 
 	cleaner, err := CreateCleaner(logger, mockObjectStore, cleanupPolicy, quarantineBucket, mockCleanerCollector, mockAuditLogger)
